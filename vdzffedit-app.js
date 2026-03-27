@@ -649,6 +649,7 @@ function saveSettings() {
     link: !!state.get('gridLink'),
     selectionColor: state.get('selectionColor') || '#ff69b4',
     stitchScale: state.get('stitchScale') || 1,
+    groups: setBarEl.style.display !== 'none',
     background: viewport.backgroundType,
   };
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
@@ -701,6 +702,10 @@ function loadSettings() {
       document.getElementById('setting-stitch-scale').value = s.stitchScale;
     }
     if (s.background) viewport.setBackground(s.background);
+    if (s.groups !== undefined) {
+      setBarEl.style.display = s.groups ? 'flex' : 'none';
+      btnGroupsToggle.classList.toggle('active', s.groups);
+    }
   } catch {}
 }
 
