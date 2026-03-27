@@ -36,6 +36,8 @@ class ToolManager {
   stitchPicker;
   imageOverlay;
   layerManager;
+  stitchTarget;
+  imageTarget;
 
   /** @type {object} OrbitControls reference */
   #controls;
@@ -73,6 +75,8 @@ class ToolManager {
     this.stitchPicker = opts.stitchPicker;
     this.imageOverlay = opts.imageOverlay;
     this.layerManager = opts.layerManager;
+    this.stitchTarget = opts.stitchTarget;
+    this.imageTarget = opts.imageTarget;
     this.#controls = opts.controls;
     this.#canvas = opts.canvas;
     this.#screenToWorld = opts.screenToWorld;

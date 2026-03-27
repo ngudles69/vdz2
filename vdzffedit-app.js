@@ -13,6 +13,7 @@ import { StitchStore } from './modules/StitchStore.js';
 import { StitchRenderer } from './modules/StitchRenderer.js';
 import { SelectionManager } from './ui/SelectionManager.js';
 import { TransformControls } from './ui/TransformControls.js';
+import { StitchTransformTarget, ImageTransformTarget } from './ui/TransformTarget.js';
 import { SetManager } from './modules/SetManager.js';
 import { SetBar } from './ui/SetBar.js';
 import { ToolManager } from './ui/tools/ToolManager.js';
@@ -68,7 +69,9 @@ const stitchPicker = new StitchPicker(bus, state, stitchLibrary);
 const stitchStore = new StitchStore(bus);
 const selectionManager = new SelectionManager(bus);
 const stitchRenderer = new StitchRenderer(bus, stitchStore, stitchLibrary, stitchAtlas, layerManager);
-const transformControls = new TransformControls(bus, stitchStore, selectionManager, viewport.scene, viewport.camera);
+const transformControls = new TransformControls(bus, viewport.scene, viewport.camera);
+const stitchTarget = new StitchTransformTarget(stitchStore, selectionManager);
+const imageTarget = new ImageTransformTarget(imageOverlay);
 
 const setManager = new SetManager(bus, stitchStore);
 stitchRenderer.setSetManager(setManager);
@@ -82,6 +85,30 @@ const setBar = new SetBar(bus, setManager, selectionManager);
 bus.on('layer:lock-changed', ({ name, locked }) => {
   if (name === 'stitches' && locked) {
     selectionManager.deselectAll();
+    transformControls.clearTarget();
+  }
+});
+
+// When stitch selection changes, update transform controls
+bus.on('selection:changed', () => {
+  if (selectionManager.hasSelection) {
+    transformControls.setTarget(stitchTarget);
+  } else {
+    // Only clear if current target is stitch target
+    if (transformControls.target === stitchTarget) {
+      transformControls.clearTarget();
+    }
+  }
+});
+
+// When a selected stitch is removed, refresh
+bus.on('stitch-store:removed', ({ stitch }) => {
+  if (selectionManager.isSelected(stitch.id)) {
+    if (selectionManager.hasSelection) {
+      transformControls.refreshBounds();
+    } else {
+      transformControls.clearTarget();
+    }
   }
 });
 
@@ -99,6 +126,8 @@ const toolManager = new ToolManager({
   stitchPicker,
   imageOverlay,
   layerManager,
+  stitchTarget,
+  imageTarget,
   controls: viewport.controls,
   canvas: viewport.domElement,
   screenToWorld: viewport.screenToWorld.bind(viewport),

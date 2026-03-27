@@ -248,6 +248,20 @@ class LayerPanel {
     });
     blendRow.appendChild(blendSelect);
     this.#modalBody.appendChild(blendRow);
+
+    // Rotation
+    const rotRow = this.#makeSettingsRow('Rotation °');
+    const rotInput = document.createElement('input');
+    rotInput.type = 'number';
+    rotInput.min = '-360';
+    rotInput.max = '360';
+    rotInput.step = '1';
+    rotInput.value = Math.round(this.#imageOverlay.rotation);
+    rotInput.addEventListener('change', (e) => {
+      this.#imageOverlay.setRotation(parseFloat(e.target.value) || 0);
+    });
+    rotRow.appendChild(rotInput);
+    this.#modalBody.appendChild(rotRow);
   }
 
   #buildStitchesConfig() {

@@ -3,9 +3,9 @@ import * as THREE from 'three';
 /**
  * ImageOverlay — Reference image overlay system for the Image layer.
  *
- * Handles image loading, positioning, resizing, fitting modes, blend modes,
- * and lock/unlock state. Drag/resize methods are called by Viewport pointer
- * event handling — this module does NOT own pointer events directly.
+ * Handles image loading, fitting modes, blend modes, and lock/unlock state.
+ * Transform interactions (move, resize, rotate) are handled by TransformControls
+ * via ImageTransformTarget — this module owns the mesh but not the interaction.
  */
 class ImageOverlay {
 
@@ -39,27 +39,8 @@ class ImageOverlay {
   /** @type {string} */
   #fitMode = 'centered';
 
-  /** @type {number} Rotation in radians */
-  #rotation = 0;
-
   /** @type {THREE.OrthographicCamera|null} */
   #camera = null;
-
-  // --- Drag state ---
-  #dragStartImagePos = null;
-  #dragStartPointer = null;
-
-  // --- Resize state ---
-  #resizeCorner = -1;
-  #resizeStartImagePos = null;
-  #resizeStartScale = null;
-  #resizeStartPointer = null;
-  #resizeAnchor = null;
-
-  // --- Resize handles ---
-  /** @type {THREE.Mesh[]} */
-  #handles = [];
-  #handleSize = 8;
 
   /**
    * @param {import('../core/EventBus.js').EventBus} bus
@@ -69,59 +50,6 @@ class ImageOverlay {
     this.#bus = bus;
     this.#layerManager = layerManager;
     this.#imageGroup = layerManager.getGroup('image');
-    this.#createHandles();
-  }
-
-  #createHandles() {
-    const handleGeom = new THREE.PlaneGeometry(1, 1);
-    const handleMat = new THREE.MeshBasicMaterial({
-      color: 0x7c5cfc,
-      transparent: true,
-      opacity: 0.0,
-      depthTest: false,
-      depthWrite: false,
-    });
-
-    for (let i = 0; i < 4; i++) {
-      const handle = new THREE.Mesh(handleGeom.clone(), handleMat.clone());
-      handle.renderOrder = 201;
-      handle.visible = false;
-      handle.userData.isImageHandle = true;
-      handle.userData.handleIndex = i;
-      this.#imageGroup.add(handle);
-      this.#handles.push(handle);
-    }
-  }
-
-  #updateHandles() {
-    if (!this.#imageMesh || this.#handles.length < 4) return;
-
-    const mesh = this.#imageMesh;
-    const geom = mesh.geometry;
-    const halfW = (geom.parameters.width * mesh.scale.x) / 2;
-    const halfH = (geom.parameters.height * mesh.scale.y) / 2;
-    const cx = mesh.position.x;
-    const cy = mesh.position.y;
-
-    const corners = [
-      { x: cx - halfW, y: cy + halfH },
-      { x: cx + halfW, y: cy + halfH },
-      { x: cx + halfW, y: cy - halfH },
-      { x: cx - halfW, y: cy - halfH },
-    ];
-
-    const hs = this.#handleSize;
-    for (let i = 0; i < 4; i++) {
-      this.#handles[i].position.set(corners[i].x, corners[i].y, 0);
-      this.#handles[i].scale.set(hs, hs, 1);
-      this.#handles[i].visible = !this.#isLocked;
-    }
-  }
-
-  #showHandles(show) {
-    for (const handle of this.#handles) {
-      handle.visible = show && !this.#isLocked && this.#imageMesh !== null;
-    }
   }
 
   #applyFit() {
@@ -154,8 +82,6 @@ class ImageOverlay {
         break;
       }
     }
-
-    this.#updateHandles();
   }
 
   #applyBlendMode() {
@@ -236,7 +162,6 @@ class ImageOverlay {
 
       this.#applyBlendMode();
       this.#applyFit();
-      this.#showHandles(true);
 
       this.#bus.emit('image:loaded', {
         width: img.width,
@@ -264,7 +189,6 @@ class ImageOverlay {
 
   setLocked(locked) {
     this.#isLocked = !!locked;
-    this.#showHandles(!locked);
     this.#bus.emit('image:lock-changed', { locked: this.#isLocked });
   }
 
@@ -273,16 +197,17 @@ class ImageOverlay {
    * @param {number} degrees
    */
   setRotation(degrees) {
-    this.#rotation = degrees * Math.PI / 180;
     if (this.#imageMesh) {
-      this.#imageMesh.rotation.z = this.#rotation;
-      this.#updateHandles();
+      this.#imageMesh.rotation.z = degrees * Math.PI / 180;
     }
     this.#bus.emit('image:rotation-changed', { degrees });
   }
 
   /** @returns {number} Rotation in degrees */
-  get rotation() { return this.#rotation * 180 / Math.PI; }
+  get rotation() {
+    if (!this.#imageMesh) return 0;
+    return this.#imageMesh.rotation.z * 180 / Math.PI;
+  }
 
   get isLocked()  { return this.#isLocked; }
   get blendMode() { return this.#blendMode; }
@@ -298,117 +223,14 @@ class ImageOverlay {
       this.#naturalWidth = 0;
       this.#naturalHeight = 0;
     }
-    this.#showHandles(false);
     this.#bus.emit('image:removed', null);
   }
 
+  /** @returns {THREE.Mesh|null} The image mesh (for hit testing and transform target) */
   getImageMesh() { return this.#imageMesh; }
-  getHandles()   { return this.#handles; }
 
   setCamera(camera) {
     this.#camera = camera;
-  }
-
-  // ---- Drag support ----
-
-  startDrag(worldPoint) {
-    if (!this.#imageMesh || this.#isLocked) return;
-    this.#dragStartImagePos = {
-      x: this.#imageMesh.position.x,
-      y: this.#imageMesh.position.y,
-    };
-    this.#dragStartPointer = { x: worldPoint.x, y: worldPoint.y };
-  }
-
-  updateDrag(worldPoint) {
-    if (!this.#imageMesh || !this.#dragStartImagePos || !this.#dragStartPointer) return;
-    const dx = worldPoint.x - this.#dragStartPointer.x;
-    const dy = worldPoint.y - this.#dragStartPointer.y;
-    this.#imageMesh.position.x = this.#dragStartImagePos.x + dx;
-    this.#imageMesh.position.y = this.#dragStartImagePos.y + dy;
-    this.#updateHandles();
-  }
-
-  endDrag() {
-    this.#dragStartImagePos = null;
-    this.#dragStartPointer = null;
-  }
-
-  // ---- Resize support ----
-
-  startResize(cornerIndex, worldPoint) {
-    if (!this.#imageMesh || this.#isLocked) return;
-    this.#resizeCorner = cornerIndex;
-    this.#resizeStartImagePos = {
-      x: this.#imageMesh.position.x,
-      y: this.#imageMesh.position.y,
-    };
-    this.#resizeStartScale = {
-      sx: this.#imageMesh.scale.x,
-      sy: this.#imageMesh.scale.y,
-    };
-    this.#resizeStartPointer = { x: worldPoint.x, y: worldPoint.y };
-
-    const geom = this.#imageMesh.geometry;
-    const halfW = (geom.parameters.width * this.#imageMesh.scale.x) / 2;
-    const halfH = (geom.parameters.height * this.#imageMesh.scale.y) / 2;
-    const cx = this.#imageMesh.position.x;
-    const cy = this.#imageMesh.position.y;
-
-    const oppositeIdx = (cornerIndex + 2) % 4;
-    const corners = [
-      { x: cx - halfW, y: cy + halfH },
-      { x: cx + halfW, y: cy + halfH },
-      { x: cx + halfW, y: cy - halfH },
-      { x: cx - halfW, y: cy - halfH },
-    ];
-    this.#resizeAnchor = corners[oppositeIdx];
-  }
-
-  updateResize(worldPoint) {
-    if (!this.#imageMesh || !this.#resizeAnchor || !this.#resizeStartPointer || !this.#resizeStartScale) return;
-
-    const startDist = Math.sqrt(
-      (this.#resizeStartPointer.x - this.#resizeAnchor.x) ** 2 +
-      (this.#resizeStartPointer.y - this.#resizeAnchor.y) ** 2
-    );
-    const currentDist = Math.sqrt(
-      (worldPoint.x - this.#resizeAnchor.x) ** 2 +
-      (worldPoint.y - this.#resizeAnchor.y) ** 2
-    );
-
-    if (startDist < 0.001) return;
-
-    const ratio = currentDist / startDist;
-    const minScale = 0.05;
-    const newScaleX = Math.max(minScale, this.#resizeStartScale.sx * ratio);
-    const newScaleY = Math.max(minScale, this.#resizeStartScale.sy * ratio);
-
-    this.#imageMesh.scale.set(newScaleX, newScaleY, 1);
-
-    const geom = this.#imageMesh.geometry;
-    const halfW = (geom.parameters.width * newScaleX) / 2;
-    const halfH = (geom.parameters.height * newScaleY) / 2;
-
-    const anchorCornerIdx = (this.#resizeCorner + 2) % 4;
-    let cx, cy;
-    switch (anchorCornerIdx) {
-      case 0: cx = this.#resizeAnchor.x + halfW; cy = this.#resizeAnchor.y - halfH; break;
-      case 1: cx = this.#resizeAnchor.x - halfW; cy = this.#resizeAnchor.y - halfH; break;
-      case 2: cx = this.#resizeAnchor.x - halfW; cy = this.#resizeAnchor.y + halfH; break;
-      case 3: cx = this.#resizeAnchor.x + halfW; cy = this.#resizeAnchor.y + halfH; break;
-    }
-
-    this.#imageMesh.position.set(cx, cy, 0);
-    this.#updateHandles();
-  }
-
-  endResize() {
-    this.#resizeCorner = -1;
-    this.#resizeStartImagePos = null;
-    this.#resizeStartScale = null;
-    this.#resizeStartPointer = null;
-    this.#resizeAnchor = null;
   }
 }
 

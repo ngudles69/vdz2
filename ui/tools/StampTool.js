@@ -50,6 +50,11 @@ class StampTool extends Tool {
     const hitId = this.renderer?.hitTest(wp);
     if (hitId) {
       this.selection.select(hitId, e.shiftKey);
+      // Set stitch transform target
+      const target = this.manager?.stitchTarget;
+      if (target && this.transform) {
+        this.transform.setTarget(target);
+      }
       this.#tappedOnStitch = true;
       return true;
     }
@@ -107,7 +112,11 @@ class StampTool extends Tool {
       const wp1 = vp.screenToWorld(this.#boxStart.x, this.#boxStart.y);
       const wp2 = vp.screenToWorld(e.clientX, e.clientY);
       const ids = this.renderer?.getStampsInRect(wp1.x, wp1.y, wp2.x, wp2.y) || [];
-      if (ids.length > 0) this.selection.selectMultiple(ids, e.shiftKey);
+      if (ids.length > 0) {
+        this.selection.selectMultiple(ids, e.shiftKey);
+        const target = this.manager?.stitchTarget;
+        if (target && this.transform) this.transform.setTarget(target);
+      }
       this.#boxStart = null;
       this.#boxDragging = false;
       const rect = document.getElementById('box-select-rect');
@@ -160,7 +169,6 @@ class StampTool extends Tool {
   }
 
   getCursor() {
-    // Show appropriate cursor when hovering transform handles
     if (this.transform?.visible) {
       // Can't easily check hover here without wp, so keep crosshair
     }
