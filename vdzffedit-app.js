@@ -475,6 +475,15 @@ btnLinkGrid.addEventListener('click', () => {
   btnLinkGrid.classList.toggle('active', on);
 });
 
+// Groups toggle
+const btnGroupsToggle = document.getElementById('btn-groups-toggle');
+const setBarEl = document.getElementById('set-bar');
+btnGroupsToggle.addEventListener('click', () => {
+  const on = setBarEl.style.display !== 'none';
+  setBarEl.style.display = on ? 'none' : 'flex';
+  btnGroupsToggle.classList.toggle('active', !on);
+});
+
 const btnGridToggle = document.getElementById('btn-grid-toggle');
 const btnRulerToggle = document.getElementById('btn-ruler-toggle');
 

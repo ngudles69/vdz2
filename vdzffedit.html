@@ -231,15 +231,18 @@
     /* --- Set bar --- */
 
     .set-bar {
-      position: fixed;
-      bottom: 20px;
+      position: absolute;
+      top: 0;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       align-items: center;
       gap: 6px;
-      z-index: 100;
+      z-index: 10;
       pointer-events: auto;
+      background: rgba(19, 19, 26, 0.85);
+      border-radius: 0 0 8px 8px;
+      padding: 2px 10px;
     }
 
     .set-btn {
@@ -248,11 +251,11 @@
       border: none;
       color: var(--vd-text-muted);
       font-family: 'Jost', sans-serif;
-      font-size: 36px;
-      font-weight: 300;
-      letter-spacing: 0.06em;
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
       cursor: pointer;
-      padding: 4px 8px;
+      padding: 2px 6px;
       border-radius: 4px;
       transition: color 0.15s;
       text-transform: uppercase;
@@ -753,6 +756,10 @@
       <button id="btn-link-grid" class="toolbar-btn" title="Link to grid">
         <span class="material-symbols-rounded">link</span>
       </button>
+      <span class="toolbar-sep"></span>
+      <button id="btn-groups-toggle" class="toolbar-btn active" title="Toggle groups">
+        <span class="material-symbols-rounded">looks_one</span>
+      </button>
       <span class="toolbar-spacer"></span>
       <button id="btn-grid-toggle" class="toolbar-btn" title="Toggle grid">
         <span class="material-symbols-rounded">grid_on</span>
@@ -769,6 +776,20 @@
     <div id="canvas-container">
       <canvas id="ruler-top" class="ruler ruler-top"></canvas>
       <canvas id="ruler-left" class="ruler ruler-left"></canvas>
+      <!-- Set bar (below toolbar, inside canvas) -->
+      <div id="set-bar" class="set-bar">
+        <button class="set-btn set-btn-all active" data-set="all">ALL</button>
+        <button class="set-btn" data-set="1">1</button>
+        <button class="set-btn" data-set="2">2</button>
+        <button class="set-btn" data-set="3">3</button>
+        <button class="set-btn" data-set="4">4</button>
+        <button class="set-btn" data-set="5">5</button>
+        <button class="set-btn" data-set="6">6</button>
+        <button class="set-btn" data-set="7">7</button>
+        <button class="set-btn" data-set="8">8</button>
+        <button class="set-btn" data-set="9">9</button>
+        <button class="set-btn set-btn-more" data-set="more">more</button>
+      </div>
       <div id="context-overlay" class="context-overlay" style="display: none;">
         <span>Restoring canvas...</span>
       </div>
@@ -797,20 +818,6 @@
     </div>
 
     <!-- Layers button -->
-    <!-- Set bar (bottom center) -->
-    <div id="set-bar" class="set-bar">
-      <button class="set-btn set-btn-all active" data-set="all">ALL</button>
-      <button class="set-btn" data-set="1">1</button>
-      <button class="set-btn" data-set="2">2</button>
-      <button class="set-btn" data-set="3">3</button>
-      <button class="set-btn" data-set="4">4</button>
-      <button class="set-btn" data-set="5">5</button>
-      <button class="set-btn" data-set="6">6</button>
-      <button class="set-btn" data-set="7">7</button>
-      <button class="set-btn" data-set="8">8</button>
-      <button class="set-btn" data-set="9">9</button>
-      <button class="set-btn set-btn-more" data-set="more">more</button>
-    </div>
 
     <!-- Stitch picker toggle (bottom-left) -->
     <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:fixed;bottom:16px;left:28px;z-index:100;width:48px;height:48px;">
