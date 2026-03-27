@@ -17,7 +17,8 @@ class VideoZone {
   #zone;
   #emptyEl;
   #activeEl;
-  #scrubber;
+  #playhead;
+  #timeline;
   #timeDisplay;
   #nameDisplay;
   #playBtn;
@@ -50,14 +51,15 @@ class VideoZone {
     this.#zone = document.getElementById('video-zone');
     this.#emptyEl = document.getElementById('video-zone-empty');
     this.#activeEl = document.getElementById('video-zone-active');
-    this.#scrubber = document.getElementById('vc-scrubber');
+    this.#playhead = document.getElementById('vc-playhead');
+    this.#timeline = document.getElementById('video-filmstrip');
     this.#timeDisplay = document.getElementById('vc-time');
     this.#nameDisplay = document.getElementById('vc-name');
     this.#playBtn = document.getElementById('vc-play');
 
     this.#wireLoadButton();
     this.#wireTransport();
-    this.#wireScrubber();
+    this.#wireTimeline();
     this.#wireBookmark();
     this.#wireSpeed();
     this.#wireMinimize();
@@ -93,7 +95,8 @@ class VideoZone {
       this.#showActive();
       this.#bookmarks = [];
       this.#renderBookmarks();
-      this.#extractFilmstrip();
+      // STEP 1: test playhead without filmstrip
+      // this.#extractFilmstrip();
       this.#bus.emit('video:loaded', {
         duration: this.#video.duration,
         width: this.#video.videoWidth,
@@ -186,9 +189,6 @@ class VideoZone {
     this.#seek(this.#video.currentTime + frames * (1 / 30));
   }
 
-  /** @type {boolean} Whether user is dragging the scrubber */
-  #scrubbing = false;
-
   #tick() {
     if (!this.#playing) return;
 
@@ -200,26 +200,44 @@ class VideoZone {
       return;
     }
 
-    if (!this.#scrubbing) {
-      this.#scrubber.value = Math.floor(this.#video.currentTime * 1000);
-    }
+    this.#updatePlayhead();
     this.#updateTime();
     this.#animFrame = requestAnimationFrame(() => this.#tick());
   }
 
-  // ---- Scrubber ----
+  // ---- Timeline (click/drag to seek) ----
 
-  #wireScrubber() {
-    this.#scrubber.addEventListener('input', () => {
-      this.#scrubbing = true;
-      const t = parseInt(this.#scrubber.value) / 1000;
-      this.#video.currentTime = t;
+  #wireTimeline() {
+    let dragging = false;
+
+    const seekToX = (clientX) => {
+      const rect = this.#timeline.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      this.#video.currentTime = pct * (this.#video.duration || 0);
+      this.#updatePlayhead();
       this.#updateTime();
+    };
+
+    this.#timeline.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      this.#timeline.setPointerCapture(e.pointerId);
+      seekToX(e.clientX);
     });
 
-    this.#scrubber.addEventListener('change', () => {
-      this.#scrubbing = false;
+    this.#timeline.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      seekToX(e.clientX);
     });
+
+    this.#timeline.addEventListener('pointerup', () => {
+      dragging = false;
+    });
+  }
+
+  #updatePlayhead() {
+    if (!this.#playhead || !this.#video.duration) return;
+    const pct = (this.#video.currentTime / this.#video.duration) * 100;
+    this.#playhead.style.left = `${pct}%`;
   }
 
   // ---- Time display ----
@@ -228,9 +246,7 @@ class VideoZone {
     const cur = this.#video.currentTime || 0;
     const dur = this.#video.duration || 0;
     this.#timeDisplay.textContent = `${this.#fmtTime(cur)} / ${this.#fmtTime(dur)}`;
-    if (!this.#playing) {
-      this.#scrubber.value = Math.floor(cur * 1000);
-    }
+    this.#updatePlayhead();
     this.#bus.emit('video:timeupdate', { time: cur, duration: dur });
   }
 

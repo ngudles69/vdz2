@@ -410,37 +410,36 @@
       height: 56px;
       position: relative;
       background: #0a0a0e;
+      cursor: pointer;
+      overflow: hidden;
     }
     .video-timeline canvas {
       position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
       z-index: 1;
       pointer-events: none;
     }
-    .video-timeline input[type="range"] {
+    .video-playhead {
       position: absolute;
-      left: 0;
       top: 0;
-      width: 100%;
+      width: 3px;
       height: 100%;
-      -webkit-appearance: none;
-      appearance: none;
-      background: transparent;
-      outline: none;
-      cursor: pointer;
-      z-index: 10;
-      margin: 0;
-    }
-    .video-timeline input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 4px;
-      height: 56px;
-      border-radius: 0;
       background: red;
-      cursor: pointer;
+      z-index: 20;
+      pointer-events: none;
+      transform: translateX(-50%);
+    }
+    .video-playhead::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: red;
+      border-radius: 0 0 3px 3px;
     }
     .scrubber-markers {
       position: absolute;
@@ -1013,7 +1012,7 @@
         <!-- Timeline: filmstrip + scrubber + markers -->
         <div class="video-timeline" id="video-filmstrip">
           <div class="scrubber-markers" id="scrubber-markers"></div>
-          <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
+          <div class="video-playhead" id="vc-playhead" style="left:0"></div>
         </div>
       </div>
     </div>
