@@ -187,8 +187,23 @@ class VideoZone {
     this.#seek(this.#video.currentTime + frames * (1 / 30));
   }
 
+  /** @type {boolean} Whether user is dragging the scrubber */
+  #scrubbing = false;
+
   #tick() {
     if (!this.#playing) return;
+
+    // Auto-stop at end
+    if (this.#video.ended) {
+      this.#playing = false;
+      this.#playBtn.querySelector('.material-symbols-rounded').textContent = 'play_arrow';
+      this.#updateTime();
+      return;
+    }
+
+    if (!this.#scrubbing) {
+      this.#scrubber.value = Math.floor(this.#video.currentTime * 1000);
+    }
     this.#updateTime();
     this.#animFrame = requestAnimationFrame(() => this.#tick());
   }
@@ -196,29 +211,16 @@ class VideoZone {
   // ---- Scrubber ----
 
   #wireScrubber() {
-    let scrubbing = false;
-
     this.#scrubber.addEventListener('input', () => {
-      scrubbing = true;
+      this.#scrubbing = true;
       const t = parseInt(this.#scrubber.value) / 1000;
       this.#video.currentTime = t;
       this.#updateTime();
     });
 
     this.#scrubber.addEventListener('change', () => {
-      scrubbing = false;
+      this.#scrubbing = false;
     });
-
-    // Update scrubber position during playback
-    const origTick = this.#tick.bind(this);
-    this.#tick = () => {
-      if (!this.#playing) return;
-      if (!scrubbing) {
-        this.#scrubber.value = Math.floor(this.#video.currentTime * 1000);
-      }
-      this.#updateTime();
-      this.#animFrame = requestAnimationFrame(() => this.#tick());
-    };
   }
 
   // ---- Time display ----
