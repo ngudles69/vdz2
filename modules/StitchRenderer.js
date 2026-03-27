@@ -116,6 +116,13 @@ class StitchRenderer {
   /** @type {boolean} Whether selection visuals need rebuild */
   #selectionDirty = false;
 
+  // --- Text stamp meshes ---
+  /** @type {Map<string, THREE.Mesh>} Text stamp ID → mesh */
+  #textMeshes = new Map();
+
+  /** @type {THREE.Group} Container for text meshes */
+  #textGroup;
+
   /**
    * @param {object} bus
    * @param {object} store - StitchStore
@@ -133,6 +140,7 @@ class StitchRenderer {
 
     this.#createInstancedMesh();
     this.#createSelectionGroup();
+    this.#createTextGroup();
 
     // Listen to store changes
     bus.on('stitch-store:added', () => { this.#dirty = true; });
@@ -269,6 +277,141 @@ class StitchRenderer {
     }
   }
 
+  #createTextGroup() {
+    this.#textGroup = new THREE.Group();
+    this.#textGroup.renderOrder = 401; // just above stitch instances
+    this.#group.add(this.#textGroup);
+  }
+
+  /**
+   * Create or update a Canvas2D texture for a text stamp.
+   * @param {object} stamp - text stamp data
+   * @returns {{ texture: THREE.CanvasTexture, width: number, height: number }}
+   */
+  #renderTextTexture(stamp) {
+    const style = stamp.textStyle || {};
+    const fontSize = style.fontSize || 24;
+    const fontFamily = style.fontFamily || 'Jost, sans-serif';
+    const bold = style.bold ? 'bold ' : '';
+    const italic = style.italic ? 'italic ' : '';
+    const font = `${italic}${bold}${fontSize}px ${fontFamily}`;
+    const text = stamp.text || '';
+    const color = stamp.colorOverride || '#ffffff';
+
+    // Measure text
+    const measureCanvas = document.createElement('canvas');
+    const mCtx = measureCanvas.getContext('2d');
+    mCtx.font = font;
+    const metrics = mCtx.measureText(text);
+    const textWidth = Math.ceil(metrics.width);
+    const textHeight = Math.ceil(fontSize * 1.3); // line height
+
+    // Create canvas with padding
+    const pad = 4;
+    const cw = textWidth + pad * 2;
+    const ch = textHeight + pad * 2;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, pad, pad);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+
+    return { texture, width: cw, height: ch };
+  }
+
+  /**
+   * Sync text stamp meshes with store data.
+   */
+  #syncTextMeshes() {
+    const sm = this.#setManager;
+    const textStamps = this.#store.getAllSorted().filter(s =>
+      s.type === 'text' && (!sm || sm.isStitchVisible(s))
+    );
+
+    const currentIds = new Set(textStamps.map(s => s.id));
+
+    // Remove meshes for deleted/hidden text stamps
+    for (const [id, mesh] of this.#textMeshes) {
+      if (!currentIds.has(id)) {
+        this.#textGroup.remove(mesh);
+        mesh.geometry.dispose();
+        mesh.material.map?.dispose();
+        mesh.material.dispose();
+        this.#textMeshes.delete(id);
+      }
+    }
+
+    // Update or create meshes
+    for (const stamp of textStamps) {
+      let mesh = this.#textMeshes.get(stamp.id);
+
+      if (!mesh || mesh.userData._textHash !== this.#textHash(stamp)) {
+        // Need to (re)create texture
+        if (mesh) {
+          this.#textGroup.remove(mesh);
+          mesh.geometry.dispose();
+          mesh.material.map?.dispose();
+          mesh.material.dispose();
+        }
+
+        const { texture, width, height } = this.#renderTextTexture(stamp);
+
+        // Scale: 1 canvas pixel = 0.5 world units (matches stitch scale roughly)
+        const worldW = width * 0.5;
+        const worldH = height * 0.5;
+
+        const geometry = new THREE.PlaneGeometry(worldW, worldH);
+        // Flip UV Y for Canvas2D
+        const uvs = geometry.getAttribute('uv');
+        for (let i = 0; i < uvs.count; i++) {
+          uvs.setY(i, 1.0 - uvs.getY(i));
+        }
+        uvs.needsUpdate = true;
+
+        const material = new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          depthTest: false,
+          depthWrite: false,
+        });
+
+        mesh = new THREE.Mesh(geometry, material);
+        mesh.renderOrder = 401;
+        mesh.userData._stampId = stamp.id;
+        mesh.userData._textHash = this.#textHash(stamp);
+        mesh.userData._worldW = worldW;
+        mesh.userData._worldH = worldH;
+
+        this.#textGroup.add(mesh);
+        this.#textMeshes.set(stamp.id, mesh);
+      }
+
+      // Update transform
+      const sc = stamp.scale ?? 1;
+      mesh.position.set(stamp.position.x, stamp.position.y, 0);
+      mesh.rotation.set(0, 0, stamp.rotation);
+      mesh.scale.set(sc, sc, 1);
+      mesh.material.opacity = stamp.opacity ?? 1;
+    }
+  }
+
+  /** Simple hash to detect when text content/style changes and needs re-render */
+  #textHash(stamp) {
+    const s = stamp.textStyle || {};
+    return `${stamp.text}|${s.fontSize}|${s.bold}|${s.italic}|${s.fontFamily}|${stamp.colorOverride}`;
+  }
+
   #grow(needed) {
     const newCap = Math.max(this.#capacity * 2, needed);
 
@@ -289,6 +432,9 @@ class StitchRenderer {
 
     if (!this.#dirty) return;
     this.#dirty = false;
+
+    // Sync text stamps
+    this.#syncTextMeshes();
 
     const sm = this.#setManager;
     const stitches = this.#store.getAllSorted().filter(s =>
@@ -345,14 +491,28 @@ class StitchRenderer {
    */
   hitTest(worldPoint, threshold) {
     const t = threshold ?? 8;
-    // Test in reverse z-order (front to back) so topmost stitch is picked first
+    // Test in reverse z-order (front to back) so topmost stamp is picked first
     const sorted = this.#store.getAllSorted();
     for (let i = sorted.length - 1; i >= 0; i--) {
       const s = sorted[i];
       const dx = worldPoint.x - s.position.x;
       const dy = worldPoint.y - s.position.y;
-      if (Math.abs(dx) < t && Math.abs(dy) < t) {
-        return s.id;
+
+      if (s.type === 'text') {
+        // Use text mesh bounds for hit testing
+        const mesh = this.#textMeshes.get(s.id);
+        if (mesh) {
+          const sc = s.scale ?? 1;
+          const hw = (mesh.userData._worldW * sc) / 2;
+          const hh = (mesh.userData._worldH * sc) / 2;
+          if (Math.abs(dx) < hw && Math.abs(dy) < hh) {
+            return s.id;
+          }
+        }
+      } else {
+        if (Math.abs(dx) < t && Math.abs(dy) < t) {
+          return s.id;
+        }
       }
     }
     return null;

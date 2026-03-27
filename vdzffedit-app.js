@@ -19,6 +19,8 @@ import { SetBar } from './ui/SetBar.js';
 import { ToolManager } from './ui/tools/ToolManager.js';
 import { SelectTool } from './ui/tools/SelectTool.js';
 import { StampTool } from './ui/tools/StampTool.js';
+import { TextTool } from './ui/tools/TextTool.js';
+import { TextToolbar } from './ui/TextToolbar.js';
 import { KeyboardManager } from './ui/KeyboardManager.js';
 import {
   PlaceStampCommand,
@@ -135,13 +137,22 @@ const toolManager = new ToolManager({
 
 const selectTool = new SelectTool();
 const stampTool = new StampTool(PlaceStampCommand);
+const textTool = new TextTool(PlaceStampCommand);
 
 toolManager.register(selectTool);
 toolManager.register(stampTool);
+toolManager.register(textTool);
 toolManager.setActive('select');
+
+// Text toolbar
+const textToolbar = new TextToolbar(bus, state, selectionManager, stitchStore, history);
+
+// Track active tool in state for UI coordination
+bus.on('tool:changed', ({ id }) => state.set('activeTool', id));
 
 // Auto-switch between select and stamp based on picker state
 bus.on('stitch:active-changed', ({ stitchId }) => {
+  if (toolManager.activeToolId === 'text') return; // don't override text tool
   toolManager.setActive(stitchId ? 'stamp' : 'select');
 });
 
@@ -488,6 +499,16 @@ for (let i = 0; i <= 9; i++) {
 // --- Panels ---
 document.getElementById('btn-stitch-toggle').addEventListener('click', () => stitchPicker.toggle());
 keyboard.register({ key: 'S', label: 'Toggle stitch picker', category: 'panels', action: () => stitchPicker.toggle() });
+keyboard.register({ key: 'T', label: 'Text tool', category: 'tools', action: () => {
+  if (toolManager.activeToolId === 'text') {
+    toolManager.setActive('select');
+  } else {
+    // Clear active stitch so stamp tool doesn't interfere
+    state.set('activeStitch', null);
+    bus.emit('stitch:active-changed', { stitchId: null });
+    toolManager.setActive('text');
+  }
+}});
 keyboard.register({ key: 'L', label: 'Toggle layers', category: 'panels', action: () => {
   layerPanelEl.style.display = layerPanelEl.style.display !== 'none' ? 'none' : 'block';
 }});
@@ -566,7 +587,7 @@ window.__vdz = {
   bus, state, history, viewport, layerManager, imageOverlay,
   stitchLibrary, stitchAtlas, stitchPicker,
   stitchStore, stitchRenderer, selectionManager, transformControls,
-  toolManager, keyboard, setManager,
+  toolManager, keyboard, setManager, textToolbar,
 };
 
 console.log('[VDZ] Freeform editor initialized');
