@@ -254,11 +254,17 @@ class ImageTransformTarget {
     this.#startRotation = mesh.rotation.z;
   }
 
-  applyMove(dx, dy, _snapToGrid, _gridSpacing) {
+  applyMove(dx, dy, snapToGrid, gridSpacing) {
     const mesh = this.#imageOverlay.getImageMesh();
     if (!mesh || !this.#startPos) return;
-    mesh.position.x = this.#startPos.x + dx;
-    mesh.position.y = this.#startPos.y + dy;
+    let nx = this.#startPos.x + dx;
+    let ny = this.#startPos.y + dy;
+    if (snapToGrid) {
+      nx = Math.round(nx / gridSpacing) * gridSpacing;
+      ny = Math.round(ny / gridSpacing) * gridSpacing;
+    }
+    mesh.position.x = nx;
+    mesh.position.y = ny;
   }
 
   applyRotate(deltaAngle, _cx, _cy) {
@@ -344,11 +350,17 @@ class VideoTransformTarget {
     this.#startRotation = mesh.rotation.z;
   }
 
-  applyMove(dx, dy) {
+  applyMove(dx, dy, snapToGrid, gridSpacing) {
     const mesh = this.#videoOverlay.getMesh();
     if (!mesh || !this.#startPos) return;
-    mesh.position.x = this.#startPos.x + dx;
-    mesh.position.y = this.#startPos.y + dy;
+    let nx = this.#startPos.x + dx;
+    let ny = this.#startPos.y + dy;
+    if (snapToGrid) {
+      nx = Math.round(nx / gridSpacing) * gridSpacing;
+      ny = Math.round(ny / gridSpacing) * gridSpacing;
+    }
+    mesh.position.x = nx;
+    mesh.position.y = ny;
   }
 
   get canRotate() { return false; }

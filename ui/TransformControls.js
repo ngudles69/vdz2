@@ -402,8 +402,9 @@ class TransformControls {
    * @param {{ x: number, y: number }} wp - current world point
    * @param {boolean} [snapToGrid=false]
    * @param {number} [gridSpacing=20]
+   * @param {{ ctrl?: boolean, shift?: boolean }} [modifiers={}]
    */
-  updateDrag(wp, snapToGrid = false, gridSpacing = 20) {
+  updateDrag(wp, snapToGrid = false, gridSpacing = 20, modifiers = {}) {
     if (!this.#activeHandle || !this.#dragStart || !this.#target) return;
 
     const dx = wp.x - this.#dragStart.x;
@@ -418,7 +419,7 @@ class TransformControls {
         break;
       default:
         if (this.#activeHandle.startsWith('resize-')) {
-          this.#applyResize(wp);
+          this.#applyResize(wp, snapToGrid, gridSpacing, modifiers.ctrl);
         }
         break;
     }
@@ -446,19 +447,23 @@ class TransformControls {
   /** @returns {boolean} Whether controls are visible */
   get visible() { return this.#visible; }
 
+  /** Read current bounds from the target and update layout. */
+  #syncBoundsFromTarget() {
+    const raw = this.#target.getBounds();
+    if (!raw) return;
+    this.#bounds = {
+      ...raw,
+      cx: (raw.minX + raw.maxX) / 2,
+      cy: (raw.minY + raw.maxY) / 2,
+    };
+    this.#updateLayout();
+  }
+
   // ---- Apply transforms (delegates to target) ----
 
   #applyMove(dx, dy, snapToGrid, gridSpacing) {
     this.#target.applyMove(dx, dy, snapToGrid, gridSpacing);
-
-    // Move the bounding box with the drag
-    this.#bounds.cx = this.#dragStartBounds.cx + dx;
-    this.#bounds.cy = this.#dragStartBounds.cy + dy;
-    this.#bounds.minX = this.#dragStartBounds.minX + dx;
-    this.#bounds.minY = this.#dragStartBounds.minY + dy;
-    this.#bounds.maxX = this.#dragStartBounds.maxX + dx;
-    this.#bounds.maxY = this.#dragStartBounds.maxY + dy;
-    this.#updateLayout();
+    this.#syncBoundsFromTarget();
   }
 
   #applyRotate(wp) {
@@ -475,42 +480,45 @@ class TransformControls {
     this.#target.applyRotate(deltaAngle, cx, cy);
   }
 
-  #applyResize(wp) {
+  #applyResize(wp, snapToGrid = false, gridSpacing = 20, fromCenter = false) {
     const cornerIdx = parseInt(this.#activeHandle.split('-')[1]);
     const b = this.#dragStartBounds;
-
-    const anchors = [
-      { x: b.maxX, y: b.maxY },
-      { x: b.minX, y: b.maxY },
-      { x: b.minX, y: b.minY },
-      { x: b.maxX, y: b.minY },
-    ];
-    const anchor = anchors[cornerIdx];
 
     const origW = b.maxX - b.minX;
     const origH = b.maxY - b.minY;
     if (origW < 1 || origH < 1) return;
 
-    const newW = Math.abs(wp.x - anchor.x);
-    const newH = Math.abs(wp.y - anchor.y);
-    const scaleFactor = Math.max(0.1, Math.min(newW / origW, newH / origH));
+    // Snap the dragged point if snap is on
+    let px = wp.x, py = wp.y;
+    if (snapToGrid) {
+      px = Math.round(px / gridSpacing) * gridSpacing;
+      py = Math.round(py / gridSpacing) * gridSpacing;
+    }
+
+    let anchor, scaleFactor;
+
+    if (fromCenter) {
+      // Ctrl held: resize from center
+      anchor = { x: b.cx, y: b.cy };
+      const distX = Math.abs(px - b.cx) * 2;
+      const distY = Math.abs(py - b.cy) * 2;
+      scaleFactor = Math.max(0.1, Math.min(distX / origW, distY / origH));
+    } else {
+      // Normal: resize from opposite corner
+      const anchors = [
+        { x: b.maxX, y: b.maxY },
+        { x: b.minX, y: b.maxY },
+        { x: b.minX, y: b.minY },
+        { x: b.maxX, y: b.minY },
+      ];
+      anchor = anchors[cornerIdx];
+      const newW = Math.abs(px - anchor.x);
+      const newH = Math.abs(py - anchor.y);
+      scaleFactor = Math.max(0.1, Math.min(newW / origW, newH / origH));
+    }
 
     this.#target.applyResize(scaleFactor, anchor);
-
-    // Update bounds to follow the resize
-    const sw = origW * scaleFactor;
-    const sh = origH * scaleFactor;
-    const newMinX = anchor.x < b.cx ? anchor.x : anchor.x - sw;
-    const newMinY = anchor.y < b.cy ? anchor.y : anchor.y - sh;
-    this.#bounds = {
-      minX: newMinX,
-      minY: newMinY,
-      maxX: newMinX + sw,
-      maxY: newMinY + sh,
-      cx: newMinX + sw / 2,
-      cy: newMinY + sh / 2,
-    };
-    this.#updateLayout();
+    this.#syncBoundsFromTarget();
   }
 
   /**

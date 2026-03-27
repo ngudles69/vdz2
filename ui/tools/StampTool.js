@@ -70,7 +70,8 @@ class StampTool extends Tool {
   onPointerMove(wp, e) {
     if (this.#transformDragging) {
       const grid = this.grid;
-      this.transform.updateDrag(wp, grid.visible, grid.spacing);
+      const snap = !!this.state?.get('gridSnap');
+      this.transform.updateDrag(wp, snap, grid.spacing, { ctrl: e.ctrlKey, shift: e.shiftKey });
       return;
     }
 
