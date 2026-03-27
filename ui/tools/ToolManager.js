@@ -24,6 +24,12 @@ class ToolManager {
   /** @type {{ x: number, y: number, time: number }|null} */
   #pointerDownInfo = null;
 
+  /** @type {boolean} Whether spacebar is held (pan mode) */
+  #spaceHeld = false;
+
+  /** @type {boolean} Whether we're in a space+drag pan */
+  #spacePanning = false;
+
   // Shared references (available to tools via tool.manager.*)
   bus;
   state;
@@ -82,6 +88,7 @@ class ToolManager {
     this.#screenToWorld = opts.screenToWorld;
 
     this.#setupPointerEvents();
+    this.#setupSpacebarPan();
   }
 
   // ---- Tool registration ----
@@ -129,9 +136,41 @@ class ToolManager {
 
   // ---- Pointer event routing ----
 
+  #setupSpacebarPan() {
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && !e.repeat && !this.#isInputFocused()) {
+        e.preventDefault();
+        this.#spaceHeld = true;
+        this.#canvas.style.cursor = 'grab';
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.code === 'Space') {
+        this.#spaceHeld = false;
+        this.#spacePanning = false;
+        if (this.#activeTool) {
+          this.#canvas.style.cursor = this.#activeTool.getCursor();
+        }
+      }
+    });
+  }
+
+  #isInputFocused() {
+    const tag = document.activeElement?.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+
   #setupPointerEvents() {
     this.#canvas.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return; // left-click only
+
+      // Spacebar + left-click = pan (let OrbitControls handle it)
+      if (this.#spaceHeld) {
+        this.#spacePanning = true;
+        this.#canvas.style.cursor = 'grabbing';
+        // Don't intercept — let OrbitControls get the event
+        return;
+      }
 
       const wp = this.#screenToWorld(e.clientX, e.clientY);
       this.#pointerDownInfo = { x: e.clientX, y: e.clientY, time: performance.now() };
@@ -146,14 +185,23 @@ class ToolManager {
     });
 
     this.#canvas.addEventListener('pointermove', (e) => {
+      if (this.#spacePanning) return; // OrbitControls handles it
       if (!this.#activeTool) return;
       const wp = this.#screenToWorld(e.clientX, e.clientY);
       this.#activeTool.onPointerMove(wp, e);
-      this.#canvas.style.cursor = this.#activeTool.getCursor();
+      if (!this.#spaceHeld) {
+        this.#canvas.style.cursor = this.#activeTool.getCursor();
+      }
     });
 
     this.#canvas.addEventListener('pointerup', (e) => {
       if (e.button !== 0) return;
+
+      if (this.#spacePanning) {
+        this.#spacePanning = false;
+        this.#canvas.style.cursor = this.#spaceHeld ? 'grab' : (this.#activeTool?.getCursor() || 'default');
+        return;
+      }
 
       const wp = this.#screenToWorld(e.clientX, e.clientY);
 

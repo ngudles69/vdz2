@@ -20,6 +20,7 @@ import { ToolManager } from './ui/tools/ToolManager.js';
 import { SelectTool } from './ui/tools/SelectTool.js';
 import { StampTool } from './ui/tools/StampTool.js';
 import { TextTool } from './ui/tools/TextTool.js';
+import { AlignPanel } from './ui/AlignPanel.js';
 import { TextToolbar } from './ui/TextToolbar.js';
 import { KeyboardManager } from './ui/KeyboardManager.js';
 import {
@@ -447,6 +448,15 @@ btnTextTool.addEventListener('click', () => {
 });
 bus.on('tool:changed', ({ id }) => {
   btnTextTool.classList.toggle('active', id === 'text');
+});
+
+// Align panel
+const alignPanel = new AlignPanel(bus, stitchStore, selectionManager, viewport, history);
+const btnAlign = document.getElementById('btn-align');
+btnAlign.addEventListener('click', () => alignPanel.toggle());
+bus.on('selection:changed', ({ ids }) => {
+  btnAlign.disabled = ids.length === 0;
+  if (ids.length === 0) alignPanel.hide();
 });
 
 const btnGridToggle = document.getElementById('btn-grid-toggle');
