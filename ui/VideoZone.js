@@ -273,7 +273,31 @@ class VideoZone {
     this.#bus.emit('video:bookmark-removed', { bookmarks: [...this.#bookmarks] });
   }
 
+  #renderScrubberMarkers() {
+    const container = document.getElementById('scrubber-markers');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const dur = this.#video.duration || 0;
+    if (dur <= 0) return;
+
+    this.#bookmarks.forEach((time, i) => {
+      const pct = (time / dur) * 100;
+      const marker = document.createElement('div');
+      marker.className = 'scrubber-marker';
+      marker.style.left = `${pct}%`;
+
+      const label = document.createElement('div');
+      label.className = 'scrubber-marker-label';
+      label.textContent = `${i + 1}`;
+      marker.appendChild(label);
+
+      container.appendChild(marker);
+    });
+  }
+
   #renderBookmarks() {
+    this.#renderScrubberMarkers();
     this.#contentEl.innerHTML = '';
 
     if (this.#bookmarks.length === 0) {
