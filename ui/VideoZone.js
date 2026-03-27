@@ -21,7 +21,6 @@ class VideoZone {
   #timeDisplay;
   #nameDisplay;
   #playBtn;
-  #contentEl;
 
   /** @type {boolean} */
   #playing = false;
@@ -55,7 +54,6 @@ class VideoZone {
     this.#timeDisplay = document.getElementById('vc-time');
     this.#nameDisplay = document.getElementById('vc-name');
     this.#playBtn = document.getElementById('vc-play');
-    this.#contentEl = document.getElementById('video-content');
 
     this.#wireLoadButton();
     this.#wireTransport();
@@ -429,64 +427,14 @@ class VideoZone {
 
   #renderBookmarks() {
     this.#renderScrubberMarkers();
-    this.#contentEl.innerHTML = '';
 
-    if (this.#bookmarks.length === 0) {
-      this.#contentEl.innerHTML = '<div style="color:var(--vd-text-muted);font-size:11px;text-align:center;padding:4px;">Press <b>B</b> or bookmark button to mark sections</div>';
-      return;
+    // Update hint text
+    const hint = document.getElementById('vc-hint');
+    if (hint) {
+      hint.textContent = this.#bookmarks.length > 0
+        ? `(${this.#bookmarks.length} bookmark${this.#bookmarks.length > 1 ? 's' : ''})`
+        : '(press B to bookmark)';
     }
-
-    // Build sections from bookmarks
-    const sections = this.#getSections();
-
-    const table = document.createElement('div');
-    table.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;align-items:center;';
-
-    sections.forEach((sec, i) => {
-      const tag = document.createElement('div');
-      tag.style.cssText = `
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: var(--vd-surface-2);
-        border: 1px solid var(--vd-border);
-        border-radius: 4px;
-        padding: 2px 8px;
-        font-size: 11px;
-        color: var(--vd-text-dim);
-        cursor: pointer;
-        font-family: Jost, sans-serif;
-      `;
-
-      const label = document.createElement('span');
-      label.style.cssText = 'font-weight:600;color:var(--vd-text);min-width:14px;';
-      label.textContent = `${i + 1}`;
-
-      const time = document.createElement('span');
-      time.textContent = `${this.#fmtTime(sec.start)} → ${this.#fmtTime(sec.end)}`;
-
-      const removeBtn = document.createElement('span');
-      removeBtn.style.cssText = 'cursor:pointer;color:var(--vd-text-muted);font-size:13px;margin-left:2px;';
-      removeBtn.innerHTML = '×';
-      removeBtn.title = 'Remove';
-      // Remove the bookmark at the START of this section (which is bookmarks[i])
-      removeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // The first section starts at 0 (or first bookmark), need to figure out which bookmark to remove
-        if (i < this.#bookmarks.length) {
-          this.removeBookmark(i);
-        }
-      });
-
-      tag.addEventListener('click', () => this.#seek(sec.start));
-
-      tag.appendChild(label);
-      tag.appendChild(time);
-      tag.appendChild(removeBtn);
-      table.appendChild(tag);
-    });
-
-    this.#contentEl.appendChild(table);
   }
 
   /** Get sections from bookmarks. Each bookmark is a section boundary. */
