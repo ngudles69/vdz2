@@ -475,9 +475,17 @@ class VideoZone {
 
       // Drag to reposition bookmark
       marker.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return; // left click only
         e.stopPropagation();
         this.#draggingBookmark = i;
         this.#timeline.setPointerCapture(e.pointerId);
+      });
+
+      // Right-click to delete bookmark
+      marker.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.removeBookmark(i);
       });
 
       container.appendChild(marker);
