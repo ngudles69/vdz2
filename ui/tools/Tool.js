@@ -86,6 +86,12 @@ class Tool {
   /** @returns {import('../../modules/StitchRenderer.js').StitchRenderer} */
   get renderer() { return this.manager?.renderer; }
 
+  /** @returns {boolean} True if the stitches layer is locked */
+  get stitchesLocked() { return this.manager?.layerManager?.isLocked('stitches') ?? false; }
+
+  /** @returns {boolean} True if the image layer is locked */
+  get imageLocked() { return this.manager?.layerManager?.isLocked('image') ?? false; }
+
   /** @returns {{ gridVisible: boolean, gridSpacing: number }} */
   get grid() {
     const vp = this.manager?.viewport;

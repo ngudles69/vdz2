@@ -32,6 +32,9 @@ class StampTool extends Tool {
   #boxDragging = false;
 
   onPointerDown(wp, e) {
+    // Block all interaction when stitches layer is locked
+    if (this.stitchesLocked) return false;
+
     // 1. Check transform handles first (when selection is active)
     if (this.transform?.visible) {
       const handle = this.transform.hitTest(wp);

@@ -37,8 +37,10 @@ class SelectTool extends Tool {
   get #layerManager() { return this.manager?.layerManager ?? null; }
 
   onPointerDown(wp, e) {
-    // 1. Transform handles (highest priority when selection is active)
-    if (this.transform?.visible) {
+    const locked = this.stitchesLocked;
+
+    // 1. Transform handles (highest priority when selection is active — skip if locked)
+    if (!locked && this.transform?.visible) {
       const handle = this.transform.hitTest(wp);
       if (handle) {
         this.transform.startDrag(handle, wp);
@@ -50,11 +52,13 @@ class SelectTool extends Tool {
       }
     }
 
-    // 2. Stamp hit test
-    const hitId = this.renderer?.hitTest(wp);
-    if (hitId) {
-      this.selection.select(hitId, e.shiftKey);
-      return true;
+    // 2. Stamp hit test (skip if locked)
+    if (!locked) {
+      const hitId = this.renderer?.hitTest(wp);
+      if (hitId) {
+        this.selection.select(hitId, e.shiftKey);
+        return true;
+      }
     }
 
     // 3. Image overlay (resize handles, then body drag)
@@ -95,7 +99,8 @@ class SelectTool extends Tool {
       }
     }
 
-    // 4. Empty space — start box select
+    // 4. Empty space — start box select (skip if locked)
+    if (locked) return false;
     this.#boxStart = { x: e.clientX, y: e.clientY };
     this.manager.disableControls();
     return true;

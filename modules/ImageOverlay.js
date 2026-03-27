@@ -39,6 +39,9 @@ class ImageOverlay {
   /** @type {string} */
   #fitMode = 'centered';
 
+  /** @type {number} Rotation in radians */
+  #rotation = 0;
+
   /** @type {THREE.OrthographicCamera|null} */
   #camera = null;
 
@@ -264,6 +267,22 @@ class ImageOverlay {
     this.#showHandles(!locked);
     this.#bus.emit('image:lock-changed', { locked: this.#isLocked });
   }
+
+  /**
+   * Set image rotation in degrees.
+   * @param {number} degrees
+   */
+  setRotation(degrees) {
+    this.#rotation = degrees * Math.PI / 180;
+    if (this.#imageMesh) {
+      this.#imageMesh.rotation.z = this.#rotation;
+      this.#updateHandles();
+    }
+    this.#bus.emit('image:rotation-changed', { degrees });
+  }
+
+  /** @returns {number} Rotation in degrees */
+  get rotation() { return this.#rotation * 180 / Math.PI; }
 
   get isLocked()  { return this.#isLocked; }
   get blendMode() { return this.#blendMode; }

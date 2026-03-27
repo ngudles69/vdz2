@@ -82,7 +82,6 @@ class LayerPanel {
       // Lock
       const lockBtn = this.#makeBtn(layer.locked ? 'lock' : 'lock_open', 'Lock');
       lockBtn.classList.add('layer-lock');
-      if (layer.locked) lockBtn.classList.add('off');
       lockBtn.addEventListener('click', () => {
         const isLocked = this.#layerManager.isLocked(layer.name);
         this.#layerManager.setLocked(layer.name, !isLocked);
@@ -294,7 +293,6 @@ class LayerPanel {
       const btn = row.querySelector('.layer-lock');
       if (!btn) return;
       btn.querySelector('.material-symbols-rounded').textContent = locked ? 'lock' : 'lock_open';
-      btn.classList.toggle('off', locked);
 
       // Sync image overlay lock if it's the image layer
       if (name === 'image' && this.#imageOverlay) {

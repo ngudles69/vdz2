@@ -78,6 +78,13 @@ stitchPicker.setSelectionEditing(selectionManager, stitchStore, history);
 
 const setBar = new SetBar(bus, setManager, selectionManager);
 
+// Deselect all when stitches layer is locked
+bus.on('layer:lock-changed', ({ name, locked }) => {
+  if (name === 'stitches' && locked) {
+    selectionManager.deselectAll();
+  }
+});
+
 // ============================================================
 // Tool system
 // ============================================================
@@ -115,6 +122,9 @@ bus.on('stitch:active-changed', ({ stitchId }) => {
 
 const keyboard = new KeyboardManager();
 
+/** True when stitches layer is unlocked and there's a selection */
+const canEditStitches = () => !layerManager.isLocked('stitches') && selectionManager.hasSelection;
+
 // --- Undo / Redo ---
 keyboard.register({ key: 'Ctrl+Z', action: () => history.undo(), label: 'Undo', category: 'edit' });
 keyboard.register({ key: 'Ctrl+Shift+Z', action: () => history.redo(), label: 'Redo', category: 'edit' });
@@ -125,7 +135,7 @@ let clipboard = [];
 
 keyboard.register({
   key: 'Ctrl+C', label: 'Copy', category: 'edit',
-  when: () => selectionManager.hasSelection,
+  when: canEditStitches,
   action: () => {
     const ids = selectionManager.selectedArray;
     const stamps = stitchStore.getByIds(ids);
@@ -152,7 +162,7 @@ keyboard.register({
 
 keyboard.register({
   key: 'Ctrl+X', label: 'Cut', category: 'edit',
-  when: () => selectionManager.hasSelection,
+  when: canEditStitches,
   action: () => {
     const ids = selectionManager.selectedArray;
     const stamps = stitchStore.getByIds(ids);
@@ -207,7 +217,7 @@ keyboard.register({
 
 keyboard.register({
   key: 'Ctrl+D', label: 'Duplicate', category: 'edit',
-  when: () => selectionManager.hasSelection,
+  when: canEditStitches,
   action: () => {
     const ids = selectionManager.selectedArray;
     const stamps = stitchStore.getByIds(ids);
@@ -240,7 +250,7 @@ keyboard.register({
 // --- Selection ---
 keyboard.register({
   key: 'Delete', label: 'Delete selected', category: 'edit',
-  when: () => selectionManager.hasSelection,
+  when: canEditStitches,
   action: () => {
     history.execute(new RemoveStampsCommand(stitchStore, selectionManager.selectedArray));
     selectionManager.deselectAll();
@@ -248,7 +258,7 @@ keyboard.register({
 });
 keyboard.register({
   key: 'Backspace', label: 'Delete selected (alt)', category: 'edit',
-  when: () => selectionManager.hasSelection,
+  when: canEditStitches,
   action: () => {
     history.execute(new RemoveStampsCommand(stitchStore, selectionManager.selectedArray));
     selectionManager.deselectAll();
@@ -256,13 +266,13 @@ keyboard.register({
 });
 keyboard.register({
   key: 'X', label: 'Delete selected (X)', category: 'edit',
-  when: () => selectionManager.hasSelection,
+  when: canEditStitches,
   action: () => {
     history.execute(new RemoveStampsCommand(stitchStore, selectionManager.selectedArray));
     selectionManager.deselectAll();
   },
 });
-keyboard.register({ key: 'Ctrl+A', label: 'Select all', category: 'edit', action: () => selectionManager.selectMultiple(stitchStore.getAllIds()) });
+keyboard.register({ key: 'Ctrl+A', label: 'Select all', category: 'edit', when: () => !layerManager.isLocked('stitches'), action: () => selectionManager.selectMultiple(stitchStore.getAllIds()) });
 keyboard.register({ key: 'Escape', label: 'Deselect all', category: 'edit', action: () => selectionManager.deselectAll() });
 
 // --- Nudge ---
@@ -276,10 +286,10 @@ const nudge = (dx, dy) => {
   }
   if (moves.length) history.execute(new MoveStampsCommand(stitchStore, moves));
 };
-keyboard.register({ key: 'ArrowUp', label: 'Nudge up', category: 'edit', when: () => selectionManager.hasSelection, action: () => nudge(0, 1) });
-keyboard.register({ key: 'ArrowDown', label: 'Nudge down', category: 'edit', when: () => selectionManager.hasSelection, action: () => nudge(0, -1) });
-keyboard.register({ key: 'ArrowLeft', label: 'Nudge left', category: 'edit', when: () => selectionManager.hasSelection, action: () => nudge(-1, 0) });
-keyboard.register({ key: 'ArrowRight', label: 'Nudge right', category: 'edit', when: () => selectionManager.hasSelection, action: () => nudge(1, 0) });
+keyboard.register({ key: 'ArrowUp', label: 'Nudge up', category: 'edit', when: canEditStitches, action: () => nudge(0, 1) });
+keyboard.register({ key: 'ArrowDown', label: 'Nudge down', category: 'edit', when: canEditStitches, action: () => nudge(0, -1) });
+keyboard.register({ key: 'ArrowLeft', label: 'Nudge left', category: 'edit', when: canEditStitches, action: () => nudge(-1, 0) });
+keyboard.register({ key: 'ArrowRight', label: 'Nudge right', category: 'edit', when: canEditStitches, action: () => nudge(1, 0) });
 
 // --- Save / Load ---
 async function saveProject() {
@@ -432,7 +442,7 @@ for (let i = 0; i <= 9; i++) {
     key: `Ctrl+${i}`,
     label: i === 0 ? 'Unassign from set' : `Assign to set ${i}`,
     category: 'sets',
-    when: () => selectionManager.hasSelection,
+    when: canEditStitches,
     action: () => {
       const ids = selectionManager.selectedArray;
       if (i === 0) {
