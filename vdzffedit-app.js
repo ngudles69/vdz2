@@ -434,6 +434,21 @@ keyboard.register({ key: 'Ctrl+O', label: 'Open project', category: 'file', acti
 document.getElementById('btn-save').addEventListener('click', () => saveProject());
 document.getElementById('btn-load').addEventListener('click', () => loadProject());
 
+// Text tool button
+const btnTextTool = document.getElementById('btn-text-tool');
+btnTextTool.addEventListener('click', () => {
+  if (toolManager.activeToolId === 'text') {
+    toolManager.setActive('select');
+  } else {
+    state.set('activeStitch', null);
+    bus.emit('stitch:active-changed', { stitchId: null });
+    toolManager.setActive('text');
+  }
+});
+bus.on('tool:changed', ({ id }) => {
+  btnTextTool.classList.toggle('active', id === 'text');
+});
+
 const btnGridToggle = document.getElementById('btn-grid-toggle');
 const btnRulerToggle = document.getElementById('btn-ruler-toggle');
 
