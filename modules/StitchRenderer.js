@@ -100,6 +100,9 @@ class StitchRenderer {
   /** @type {THREE.Raycaster} Shared raycaster ref for hit testing */
   #raycaster = new THREE.Raycaster();
 
+  /** @type {object|null} SetManager for visibility filtering */
+  #setManager = null;
+
   // --- Per-stitch selection boxes ---
   /** @type {THREE.Group} Container for individual selection outlines */
   #selectionGroup;
@@ -138,6 +141,10 @@ class StitchRenderer {
     bus.on('stitch-store:batch-updated', () => { this.#dirty = true; this.#selectionDirty = true; });
     bus.on('stitch-store:reordered', () => { this.#dirty = true; });
     bus.on('stitch-store:cleared', () => { this.#dirty = true; this.#selectionDirty = true; });
+    bus.on('set:visibility-changed', () => { this.#dirty = true; });
+    bus.on('set:show-all', () => { this.#dirty = true; });
+    bus.on('set:hide-all', () => { this.#dirty = true; });
+    bus.on('set:changed', () => { this.#dirty = true; });
 
     // Listen to selection changes
     bus.on('selection:changed', ({ ids }) => {
@@ -283,7 +290,10 @@ class StitchRenderer {
     if (!this.#dirty) return;
     this.#dirty = false;
 
-    const stitches = this.#store.getAllSorted().filter(s => s.type === 'stitch');
+    const sm = this.#setManager;
+    const stitches = this.#store.getAllSorted().filter(s =>
+      s.type === 'stitch' && (!sm || sm.isStitchVisible(s))
+    );
     const count = stitches.length;
 
     if (count > this.#capacity) {
@@ -375,6 +385,11 @@ class StitchRenderer {
   /** Update the selection box color. */
   setSelectionColor(color) {
     if (this.#selBoxMat) this.#selBoxMat.color.set(color);
+  }
+
+  /** Set the SetManager for visibility filtering. */
+  setSetManager(sm) {
+    this.#setManager = sm;
   }
 
   /** Set symbol size and mark dirty */

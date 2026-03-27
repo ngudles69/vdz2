@@ -226,6 +226,83 @@
       flex: 1;
     }
 
+    /* --- Set bar --- */
+
+    .set-bar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+      pointer-events: auto;
+    }
+
+    .set-btn {
+      position: relative;
+      background: none;
+      border: none;
+      color: var(--vd-text-muted);
+      font-family: 'Jost', sans-serif;
+      font-size: 36px;
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: color 0.15s;
+      text-transform: uppercase;
+      overflow: visible;
+    }
+
+    .set-btn:hover {
+      color: var(--vd-text-dim);
+    }
+
+    /* Has stitches assigned + visible */
+    .set-btn.assigned.visible {
+      color: var(--vd-text);
+      font-weight: 500;
+    }
+
+    /* Has stitches assigned + hidden */
+    .set-btn.assigned.hidden {
+      color: var(--vd-text-dim);
+      font-weight: 400;
+      opacity: 0.5;
+    }
+
+    /* ALL button */
+    .set-btn-all.active {
+      color: var(--vd-text);
+      font-weight: 500;
+    }
+
+    /* Dot indicator (has stitches assigned) */
+    .set-dot {
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #cccccc;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .set-dot.hidden-set {
+      background: #555555;
+    }
+
+    .set-btn-more {
+      font-size: 36px;
+      letter-spacing: 0.04em;
+    }
+
     /* --- Canvas --- */
 
     #canvas-container {
@@ -703,6 +780,21 @@
     </div>
 
     <!-- Layers button -->
+    <!-- Set bar (bottom center) -->
+    <div id="set-bar" class="set-bar">
+      <button class="set-btn set-btn-all active" data-set="all">ALL</button>
+      <button class="set-btn" data-set="1">1</button>
+      <button class="set-btn" data-set="2">2</button>
+      <button class="set-btn" data-set="3">3</button>
+      <button class="set-btn" data-set="4">4</button>
+      <button class="set-btn" data-set="5">5</button>
+      <button class="set-btn" data-set="6">6</button>
+      <button class="set-btn" data-set="7">7</button>
+      <button class="set-btn" data-set="8">8</button>
+      <button class="set-btn" data-set="9">9</button>
+      <button class="set-btn set-btn-more" data-set="more">more</button>
+    </div>
+
     <!-- Stitch picker toggle (bottom-left) -->
     <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:fixed;bottom:16px;left:28px;z-index:100;width:48px;height:48px;">
       <span class="material-symbols-rounded" style="font-size:40px;">draw</span>

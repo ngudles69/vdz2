@@ -13,6 +13,8 @@ import { StitchStore } from './modules/StitchStore.js';
 import { StitchRenderer } from './modules/StitchRenderer.js';
 import { SelectionManager } from './ui/SelectionManager.js';
 import { TransformControls } from './ui/TransformControls.js';
+import { SetManager } from './modules/SetManager.js';
+import { SetBar } from './ui/SetBar.js';
 import { ToolManager } from './ui/tools/ToolManager.js';
 import { SelectTool } from './ui/tools/SelectTool.js';
 import { StampTool } from './ui/tools/StampTool.js';
@@ -68,8 +70,13 @@ const selectionManager = new SelectionManager(bus);
 const stitchRenderer = new StitchRenderer(bus, stitchStore, stitchLibrary, stitchAtlas, layerManager);
 const transformControls = new TransformControls(bus, stitchStore, selectionManager, viewport.scene, viewport.camera);
 
+const setManager = new SetManager(bus, stitchStore);
+stitchRenderer.setSetManager(setManager);
+
 viewport.setStitchRenderer(stitchRenderer);
 stitchPicker.setSelectionEditing(selectionManager, stitchStore, history);
+
+const setBar = new SetBar(bus, setManager, selectionManager);
 
 // ============================================================
 // Tool system
@@ -286,6 +293,7 @@ async function saveProject() {
       opacity: viewport.gridOpacity,
     },
     background: viewport.backgroundType,
+    sets: setManager.exportJSON(),
   };
   const json = JSON.stringify(project, null, 2);
 
@@ -355,6 +363,7 @@ function loadProject() {
 
         // Restore background
         if (project.background) viewport.setBackground(project.background);
+        if (project.sets) setManager.importJSON(project.sets);
 
         toast('Project loaded');
       } catch (err) {
@@ -397,6 +406,45 @@ btnTheme.addEventListener('click', () => {
   const isLight = document.body.classList.toggle('light-theme');
   btnTheme.querySelector('.material-symbols-rounded').textContent = isLight ? 'dark_mode' : 'light_mode';
 });
+
+// --- Set visibility (1-9 toggle, 0 show/hide all) ---
+for (let i = 1; i <= 9; i++) {
+  keyboard.register({
+    key: String(i),
+    label: `Toggle set ${i} visibility`,
+    category: 'sets',
+    action: () => setManager.toggleVisibility(i),
+  });
+}
+keyboard.register({
+  key: '0',
+  label: 'Toggle all sets visibility',
+  category: 'sets',
+  action: () => {
+    if (setManager.allVisible()) setManager.hideAll();
+    else setManager.showAll();
+  },
+});
+
+// --- Set assignment (Ctrl+1-9 assign, Ctrl+0 unassign) ---
+for (let i = 0; i <= 9; i++) {
+  keyboard.register({
+    key: `Ctrl+${i}`,
+    label: i === 0 ? 'Unassign from set' : `Assign to set ${i}`,
+    category: 'sets',
+    when: () => selectionManager.hasSelection,
+    action: () => {
+      const ids = selectionManager.selectedArray;
+      if (i === 0) {
+        setManager.unassign(ids);
+        toast('Unassigned from set');
+      } else {
+        setManager.assign(ids, i);
+        toast(`Assigned to set ${i}`);
+      }
+    },
+  });
+}
 
 // --- Panels ---
 document.getElementById('btn-stitch-toggle').addEventListener('click', () => stitchPicker.toggle());
@@ -479,7 +527,7 @@ window.__vdz = {
   bus, state, history, viewport, layerManager, imageOverlay,
   stitchLibrary, stitchAtlas, stitchPicker,
   stitchStore, stitchRenderer, selectionManager, transformControls,
-  toolManager, keyboard,
+  toolManager, keyboard, setManager,
 };
 
 console.log('[VDZ] Freeform editor initialized');
