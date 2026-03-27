@@ -180,8 +180,9 @@ class StitchPicker {
         border-color: var(--vd-text-dim);
       }
       .sp-toggle-btn.active {
-        color: var(--vd-accent);
-        border-color: var(--vd-accent);
+        color: var(--vd-bg);
+        background: rgba(255, 255, 255, 0.85);
+        border-color: rgba(255, 255, 255, 0.85);
       }
 
       /* Preview area */
@@ -275,9 +276,9 @@ class StitchPicker {
         background: rgba(255, 255, 255, 0.06);
       }
       .sp-btn--active {
-        color: var(--vd-accent);
-        border-color: var(--vd-accent);
-        box-shadow: 0 0 6px var(--vd-accent-glow);
+        color: var(--vd-bg);
+        background: rgba(255, 255, 255, 0.85);
+        border-color: rgba(255, 255, 255, 0.85);
       }
       .sp-btn-symbol {
         width: 20px;

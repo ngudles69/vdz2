@@ -113,6 +113,123 @@ keyboard.register({ key: 'Ctrl+Z', action: () => history.undo(), label: 'Undo', 
 keyboard.register({ key: 'Ctrl+Shift+Z', action: () => history.redo(), label: 'Redo', category: 'edit' });
 keyboard.register({ key: 'Ctrl+Y', action: () => history.redo(), label: 'Redo (alt)', category: 'edit' });
 
+// --- Clipboard (copy/paste/duplicate) ---
+let clipboard = [];
+
+keyboard.register({
+  key: 'Ctrl+C', label: 'Copy', category: 'edit',
+  when: () => selectionManager.hasSelection,
+  action: () => {
+    const ids = selectionManager.selectedArray;
+    const stamps = stitchStore.getByIds(ids);
+    // Compute center of selection for relative paste
+    let cx = 0, cy = 0;
+    for (const s of stamps) { cx += s.position.x; cy += s.position.y; }
+    cx /= stamps.length; cy /= stamps.length;
+    // Store deep copies with positions relative to center
+    clipboard = stamps.map(s => ({
+      type: s.type,
+      stitchType: s.stitchType,
+      text: s.text,
+      textStyle: s.textStyle ? { ...s.textStyle } : null,
+      dx: s.position.x - cx,
+      dy: s.position.y - cy,
+      rotation: s.rotation,
+      scale: s.scale ?? 1,
+      colorOverride: s.colorOverride,
+      opacity: s.opacity,
+    }));
+    toast(`Copied ${clipboard.length} stamp(s)`);
+  },
+});
+
+keyboard.register({
+  key: 'Ctrl+X', label: 'Cut', category: 'edit',
+  when: () => selectionManager.hasSelection,
+  action: () => {
+    const ids = selectionManager.selectedArray;
+    const stamps = stitchStore.getByIds(ids);
+    let cx = 0, cy = 0;
+    for (const s of stamps) { cx += s.position.x; cy += s.position.y; }
+    cx /= stamps.length; cy /= stamps.length;
+    clipboard = stamps.map(s => ({
+      type: s.type, stitchType: s.stitchType, text: s.text,
+      textStyle: s.textStyle ? { ...s.textStyle } : null,
+      dx: s.position.x - cx, dy: s.position.y - cy,
+      rotation: s.rotation, scale: s.scale ?? 1,
+      colorOverride: s.colorOverride, opacity: s.opacity,
+    }));
+    history.execute(new RemoveStampsCommand(stitchStore, ids));
+    selectionManager.deselectAll();
+    toast(`Cut ${clipboard.length} stamp(s)`);
+  },
+});
+
+keyboard.register({
+  key: 'Ctrl+V', label: 'Paste', category: 'edit',
+  when: () => clipboard.length > 0,
+  action: () => {
+    // Paste at a small offset from original position
+    const offset = 20;
+    history.beginBatch();
+    const newIds = [];
+    for (const item of clipboard) {
+      const data = {
+        type: item.type,
+        stitchType: item.stitchType,
+        text: item.text,
+        textStyle: item.textStyle,
+        position: { x: item.dx + offset, y: item.dy + offset },
+        rotation: item.rotation,
+        scale: item.scale,
+        colorOverride: item.colorOverride,
+        opacity: item.opacity,
+      };
+      const cmd = new PlaceStampCommand(stitchStore, data);
+      history.execute(cmd);
+      // Get the ID of the just-placed stamp
+      const all = stitchStore.getAll();
+      newIds.push(all[all.length - 1].id);
+    }
+    history.endBatch('Paste stamps');
+    // Select the pasted stamps
+    selectionManager.selectMultiple(newIds);
+    toast(`Pasted ${clipboard.length} stamp(s)`);
+  },
+});
+
+keyboard.register({
+  key: 'Ctrl+D', label: 'Duplicate', category: 'edit',
+  when: () => selectionManager.hasSelection,
+  action: () => {
+    const ids = selectionManager.selectedArray;
+    const stamps = stitchStore.getByIds(ids);
+    const offset = 15;
+    history.beginBatch();
+    const newIds = [];
+    for (const s of stamps) {
+      const data = {
+        type: s.type,
+        stitchType: s.stitchType,
+        text: s.text,
+        textStyle: s.textStyle,
+        position: { x: s.position.x + offset, y: s.position.y - offset },
+        rotation: s.rotation,
+        scale: s.scale ?? 1,
+        colorOverride: s.colorOverride,
+        opacity: s.opacity,
+      };
+      const cmd = new PlaceStampCommand(stitchStore, data);
+      history.execute(cmd);
+      const all = stitchStore.getAll();
+      newIds.push(all[all.length - 1].id);
+    }
+    history.endBatch('Duplicate stamps');
+    selectionManager.selectMultiple(newIds);
+    toast(`Duplicated ${stamps.length} stamp(s)`);
+  },
+});
+
 // --- Selection ---
 keyboard.register({
   key: 'Delete', label: 'Delete selected', category: 'edit',
@@ -124,6 +241,14 @@ keyboard.register({
 });
 keyboard.register({
   key: 'Backspace', label: 'Delete selected (alt)', category: 'edit',
+  when: () => selectionManager.hasSelection,
+  action: () => {
+    history.execute(new RemoveStampsCommand(stitchStore, selectionManager.selectedArray));
+    selectionManager.deselectAll();
+  },
+});
+keyboard.register({
+  key: 'X', label: 'Delete selected (X)', category: 'edit',
   when: () => selectionManager.hasSelection,
   action: () => {
     history.execute(new RemoveStampsCommand(stitchStore, selectionManager.selectedArray));

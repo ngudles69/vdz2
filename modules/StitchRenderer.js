@@ -148,6 +148,14 @@ class StitchRenderer {
 
   #createInstancedMesh() {
     const geometry = new THREE.PlaneGeometry(this.#symbolSize, this.#symbolSize);
+
+    // Flip UV Y to compensate for Canvas2D (Y-down) vs Three.js (Y-up)
+    const uvs = geometry.getAttribute('uv');
+    for (let i = 0; i < uvs.count; i++) {
+      uvs.setY(i, 1.0 - uvs.getY(i));
+    }
+    uvs.needsUpdate = true;
+
     const texture = this.#atlas.getTexture();
 
     const material = new THREE.ShaderMaterial({
