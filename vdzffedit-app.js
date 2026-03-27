@@ -459,6 +459,22 @@ bus.on('selection:changed', ({ ids }) => {
   if (ids.length === 0) alignPanel.hide();
 });
 
+// Snap & Link toolbar buttons
+const btnSnap = document.getElementById('btn-snap');
+const btnLinkGrid = document.getElementById('btn-link-grid');
+
+btnSnap.addEventListener('click', () => {
+  const on = !state.get('gridSnap');
+  state.set('gridSnap', on);
+  btnSnap.classList.toggle('active', on);
+});
+
+btnLinkGrid.addEventListener('click', () => {
+  const on = !state.get('gridLink');
+  state.set('gridLink', on);
+  btnLinkGrid.classList.toggle('active', on);
+});
+
 const btnGridToggle = document.getElementById('btn-grid-toggle');
 const btnRulerToggle = document.getElementById('btn-ruler-toggle');
 

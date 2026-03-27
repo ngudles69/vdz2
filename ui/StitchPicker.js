@@ -341,34 +341,6 @@ class StitchPicker {
     const preview = document.createElement('div');
     preview.className = 'sp-preview';
 
-    // Snap/Link toggle row
-    const toggleRow = document.createElement('div');
-    toggleRow.className = 'sp-toggle-row';
-
-    const snapBtn = document.createElement('button');
-    snapBtn.className = 'sp-toggle-btn';
-    snapBtn.textContent = 'Snap';
-    snapBtn.title = 'Snap to Grid';
-    snapBtn.addEventListener('click', () => {
-      const on = !snapBtn.classList.contains('active');
-      snapBtn.classList.toggle('active', on);
-      this.#state.set('gridSnap', on);
-    });
-    toggleRow.appendChild(snapBtn);
-
-    const linkBtn = document.createElement('button');
-    linkBtn.className = 'sp-toggle-btn';
-    linkBtn.textContent = 'Link';
-    linkBtn.title = 'Link to Grid';
-    linkBtn.addEventListener('click', () => {
-      const on = !linkBtn.classList.contains('active');
-      linkBtn.classList.toggle('active', on);
-      this.#state.set('gridLink', on);
-    });
-    toggleRow.appendChild(linkBtn);
-
-    preview.appendChild(toggleRow);
-
     // Preview canvas with dial overlay
     const previewWrap = document.createElement('div');
     previewWrap.className = 'sp-preview-wrap';

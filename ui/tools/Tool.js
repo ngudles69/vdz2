@@ -107,7 +107,7 @@ class Tool {
    * @returns {{ x: number, y: number }}
    */
   snapToGrid(wp) {
-    if (!this.state?.get('snapToGrid')) return wp;
+    if (!this.state?.get('gridSnap')) return wp;
     const s = this.grid.spacing;
     return {
       x: Math.round(wp.x / s) * s,
