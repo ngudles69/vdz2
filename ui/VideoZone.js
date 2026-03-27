@@ -90,13 +90,11 @@ class VideoZone {
 
     this.#video.addEventListener('loadedmetadata', () => {
       this.#nameDisplay.textContent = file.name;
-      this.#scrubber.max = Math.floor(this.#video.duration * 1000);
       this.#updateTime();
       this.#showActive();
       this.#bookmarks = [];
       this.#renderBookmarks();
-      // STEP 1: test playhead without filmstrip
-      // this.#extractFilmstrip();
+      this.#extractFilmstrip();
       this.#bus.emit('video:loaded', {
         duration: this.#video.duration,
         width: this.#video.videoWidth,
@@ -259,30 +257,44 @@ class VideoZone {
   // ---- Filmstrip ----
 
   async #extractFilmstrip() {
-    const container = document.getElementById('video-filmstrip');
+    const container = this.#timeline;
     if (!container) return;
+
+    // 1. Clear everything
     container.innerHTML = '';
 
     const dur = this.#video.duration;
     if (!dur || dur <= 0) return;
 
-    // Calculate how many frames we need based on container width
+    // 2. Filmstrip canvas (bottom layer — appended first)
     const containerWidth = container.clientWidth || 800;
-    const frameHeight = 48;
-    const aspect = this.#video.videoWidth / this.#video.videoHeight;
-    const frameWidth = Math.round(frameHeight * aspect);
-    const numFrames = Math.max(1, Math.ceil(containerWidth / frameWidth));
+    const frameHeight = 56;
 
-    // Create a single canvas for the filmstrip
     const canvas = document.createElement('canvas');
     canvas.width = containerWidth;
     canvas.height = frameHeight;
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
+    canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;';
     container.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
 
-    // Use a separate video element for extraction so we don't disrupt playback
+    // 3. Markers div (middle layer)
+    const markers = document.createElement('div');
+    markers.id = 'scrubber-markers';
+    markers.className = 'scrubber-markers';
+    container.appendChild(markers);
+
+    // 4. Playhead div (top layer — appended last, renders on top)
+    const playhead = document.createElement('div');
+    playhead.id = 'vc-playhead';
+    playhead.className = 'video-playhead';
+    playhead.style.left = '0';
+    container.appendChild(playhead);
+    this.#playhead = playhead;
+
+    // 5. Render bookmark markers
+    this.#renderScrubberMarkers();
+
+    // 6. Extract frames into the canvas
+    const ctx = canvas.getContext('2d');
     const extractor = document.createElement('video');
     extractor.src = this.#video.src;
     extractor.muted = true;
@@ -294,47 +306,31 @@ class VideoZone {
 
     const vw = this.#video.videoWidth;
     const vh = this.#video.videoHeight;
+    const aspect = vw / vh;
+    const frameWidth = Math.round(frameHeight * aspect);
+    const numFrames = Math.max(1, Math.ceil(containerWidth / frameWidth));
 
-    const drawFrame = (index) => {
-      return new Promise(resolve => {
-        const time = (index / numFrames) * dur;
-        extractor.currentTime = time;
-
+    for (let i = 0; i < numFrames; i++) {
+      await new Promise(resolve => {
+        extractor.currentTime = (i / numFrames) * dur;
         extractor.addEventListener('seeked', () => {
-          const dx = Math.round((index / numFrames) * containerWidth);
-          const dw = Math.round(((index + 1) / numFrames) * containerWidth) - dx;
+          const dx = Math.round((i / numFrames) * containerWidth);
+          const dw = Math.round(((i + 1) / numFrames) * containerWidth) - dx;
 
-          // "Cover" crop: fill the slot completely, cropping excess
+          // Cover crop
           const slotAspect = dw / frameHeight;
-          const videoAspect = vw / vh;
-
           let sx, sy, sw, sh;
-          if (videoAspect > slotAspect) {
-            // Video wider than slot — crop sides
-            sh = vh;
-            sw = sh * slotAspect;
-            sx = (vw - sw) / 2;
-            sy = 0;
+          if (aspect > slotAspect) {
+            sh = vh; sw = sh * slotAspect; sx = (vw - sw) / 2; sy = 0;
           } else {
-            // Video taller than slot — crop top/bottom
-            sw = vw;
-            sh = sw / slotAspect;
-            sx = 0;
-            sy = (vh - sh) / 2;
+            sw = vw; sh = sw / slotAspect; sx = 0; sy = (vh - sh) / 2;
           }
-
           ctx.drawImage(extractor, sx, sy, sw, sh, dx, 0, dw, frameHeight);
           resolve();
         }, { once: true });
       });
-    };
-
-    // Extract frames sequentially
-    for (let i = 0; i < numFrames; i++) {
-      await drawFrame(i);
     }
 
-    // Clean up extractor
     extractor.src = '';
   }
 

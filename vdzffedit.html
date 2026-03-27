@@ -417,7 +417,6 @@
       position: absolute;
       left: 0; top: 0;
       width: 100%; height: 100%;
-      z-index: 1;
       pointer-events: none;
     }
     .video-playhead {
@@ -426,7 +425,6 @@
       width: 3px;
       height: 100%;
       background: red;
-      z-index: 20;
       pointer-events: none;
       transform: translateX(-50%);
     }
@@ -448,7 +446,6 @@
       top: 0;
       bottom: 0;
       pointer-events: none;
-      z-index: 20;
     }
     .scrubber-marker {
       position: absolute;
@@ -1010,10 +1007,7 @@
         </div>
 
         <!-- Timeline: filmstrip + scrubber + markers -->
-        <div class="video-timeline" id="video-filmstrip">
-          <div class="scrubber-markers" id="scrubber-markers"></div>
-          <div class="video-playhead" id="vc-playhead" style="left:0"></div>
-        </div>
+        <div class="video-timeline" id="video-filmstrip"></div>
       </div>
     </div>
 
