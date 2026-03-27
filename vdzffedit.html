@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Violet Drizzle — Freeform Editor</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://esm.sh/three@0.183.2",
+      "three/addons/": "https://esm.sh/three@0.183.2/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      --vd-bg: #0d0d0f;
+      --vd-surface: #13131a;
+      --vd-surface-2: #1e1e2a;
+      --vd-border: #2a2a38;
+      --vd-accent: #7c5cfc;
+      --vd-accent-glow: rgba(124, 92, 252, 0.3);
+      --vd-text: rgba(255, 255, 255, 0.90);
+      --vd-text-dim: rgba(255, 255, 255, 0.55);
+      --vd-text-muted: rgba(255, 255, 255, 0.30);
+      --vd-canvas-bg: #1a1a24;
+      --vd-dot: rgba(255, 255, 255, 0.06);
+      --vd-success: #5cfc8a;
+      --vd-warning: #fcba5c;
+      --vd-error: #fc5c5c;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background: var(--vd-bg);
+      color: var(--vd-text);
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- Material Symbols config --- */
+    .material-symbols-rounded {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 300,
+        'GRAD' 0,
+        'opsz' 24;
+    }
+
+    /* --- Header --- */
+
+    .app-header {
+      height: 48px;
+      background: var(--vd-surface);
+      border-bottom: 1px solid var(--vd-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .app-logo {
+      font-size: 16px;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--vd-text);
+    }
+
+    .app-actions {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    /* --- Icon buttons --- */
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--vd-text-dim);
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      transition: color 0.15s;
+      padding: 0;
+    }
+
+    .icon-btn:hover:not(:disabled) {
+      color: var(--vd-text);
+    }
+
+    .icon-btn:active:not(:disabled) {
+      color: var(--vd-accent);
+    }
+
+    .icon-btn:disabled {
+      color: var(--vd-text-muted);
+      cursor: default;
+    }
+
+    /* --- Canvas --- */
+
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ruler {
+      position: absolute;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .ruler-top {
+      top: 0;
+      left: 20px;
+      height: 20px;
+      width: calc(100% - 20px);
+      background: rgba(13, 13, 15, 0.7);
+    }
+    .ruler-left {
+      top: 20px;
+      left: 0;
+      width: 20px;
+      height: calc(100% - 20px);
+      background: rgba(13, 13, 15, 0.7);
+    }
+
+    /* --- Context loss overlay --- */
+
+    .context-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(13, 13, 15, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--vd-text-dim);
+      font-size: 16px;
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    /* --- Box select rectangle --- */
+
+    #box-select-rect {
+      position: absolute;
+      border: 1px solid var(--vd-accent);
+      background: rgba(124, 92, 252, 0.08);
+      pointer-events: none;
+      z-index: 6;
+      display: none;
+    }
+
+    /* --- Toast --- */
+
+    #toast {
+      position: fixed;
+      bottom: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--vd-surface);
+      border: 1px solid var(--vd-border);
+      color: var(--vd-text-muted);
+      font-size: 12px;
+      font-family: 'Jost', sans-serif;
+      padding: 6px 16px;
+      border-radius: 6px;
+      z-index: 200;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    #toast.show {
+      opacity: 1;
+    }
+
+    /* --- Settings panel --- */
+
+    .settings-panel {
+      position: absolute;
+      top: 48px;
+      right: 0;
+      width: 260px;
+      background: var(--vd-surface);
+      border-left: 1px solid var(--vd-border);
+      border-bottom: 1px solid var(--vd-border);
+      border-bottom-left-radius: 8px;
+      padding: 16px;
+      z-index: 15;
+      display: none;
+    }
+
+    .settings-panel.open {
+      display: block;
+    }
+
+    .settings-panel h3 {
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      color: var(--vd-text);
+      margin-bottom: 12px;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .settings-row label {
+      font-size: 12px;
+      color: var(--vd-text-dim);
+    }
+
+    .settings-row input[type="color"] {
+      width: 32px;
+      height: 24px;
+      border: 1px solid var(--vd-border);
+      border-radius: 4px;
+      background: var(--vd-surface-2);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .settings-row input[type="number"] {
+      width: 60px;
+      height: 26px;
+      background: var(--vd-surface-2);
+      color: var(--vd-text);
+      border: 1px solid var(--vd-border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 0 6px;
+      outline: none;
+    }
+
+    .settings-row input[type="number"]:focus {
+      border-color: var(--vd-accent);
+    }
+
+    .settings-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--vd-text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+    }
+
+    .settings-close:hover {
+      color: var(--vd-text);
+    }
+
+    /* --- Layer panel --- */
+
+    .layer-panel {
+      position: fixed;
+      bottom: 56px;
+      right: 16px;
+      background: var(--vd-surface);
+      border: 1px solid var(--vd-border);
+      border-radius: 8px;
+      padding: 12px;
+      z-index: 99;
+      width: 220px;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+      font-family: 'Jost', sans-serif;
+    }
+
+    .layer-panel-header {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--vd-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .layer-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .layer-row {
+      display: flex;
+      align-items: center;
+      height: 32px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .layer-row:last-child {
+      border-bottom: none;
+    }
+
+    .layer-name {
+      flex: 1;
+      font-size: 12px;
+      color: var(--vd-text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .layer-actions {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      gap: 2px;
+      margin-left: auto;
+    }
+
+    .layer-btn {
+      background: none;
+      border: none;
+      color: var(--vd-text-dim);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+
+    .layer-btn:hover {
+      color: var(--vd-text);
+    }
+
+    .layer-btn.off {
+      opacity: 0.3;
+    }
+
+    /* --- Layer config modal --- */
+
+    .layer-config-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .layer-config-overlay.open {
+      display: flex;
+    }
+
+    .layer-config-modal {
+      background: var(--vd-surface);
+      border: 1px solid var(--vd-border);
+      border-radius: 8px;
+      padding: 24px 28px 28px;
+      min-width: 280px;
+      max-width: 340px;
+      position: relative;
+    }
+
+    .layer-config-modal h3 {
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      color: var(--vd-text);
+      margin-bottom: 20px;
+    }
+
+    .layer-config-modal .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .layer-config-modal .settings-row label {
+      font-size: 12px;
+      color: var(--vd-text-dim);
+      margin-right: 16px;
+    }
+
+    .layer-config-modal .settings-row input[type="number"] {
+      width: 60px;
+      height: 26px;
+      background: var(--vd-surface-2);
+      color: var(--vd-text);
+      border: 1px solid var(--vd-border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 0 6px;
+      outline: none;
+    }
+
+    .layer-config-modal .settings-row input[type="number"]:focus {
+      border-color: var(--vd-accent);
+    }
+
+    .layer-config-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--vd-text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+    }
+
+    .layer-config-close:hover {
+      color: var(--vd-text);
+    }
+
+    /* --- Layer config modal form elements --- */
+
+    .layer-config-modal select {
+      background: var(--vd-surface-2);
+      color: var(--vd-text);
+      border: 1px solid var(--vd-border);
+      border-radius: 4px;
+      height: 26px;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 0 6px;
+      outline: none;
+    }
+
+    .layer-config-modal select:focus {
+      border-color: var(--vd-accent);
+    }
+
+    .layer-config-modal input[type="color"] {
+      width: 32px;
+      height: 24px;
+      border: 1px solid var(--vd-border);
+      border-radius: 4px;
+      background: var(--vd-surface-2);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .layer-config-btn {
+      background: var(--vd-surface-2);
+      border: 1px solid var(--vd-border);
+      border-radius: 4px;
+      color: var(--vd-text-dim);
+      font-family: inherit;
+      font-size: 12px;
+      height: 28px;
+      padding: 0 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .layer-config-btn:hover {
+      color: var(--vd-text);
+      border-color: var(--vd-accent);
+    }
+
+    .layer-config-btn .material-symbols-rounded {
+      font-size: 16px;
+    }
+
+    .layer-config-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <span class="app-logo">Violet Drizzle</span>
+      <div class="app-actions">
+        <button id="btn-undo" class="icon-btn" title="Undo (Ctrl+Z)" disabled>
+          <span class="material-symbols-rounded">undo</span>
+        </button>
+        <button id="btn-redo" class="icon-btn" title="Redo (Ctrl+Shift+Z)" disabled>
+          <span class="material-symbols-rounded">redo</span>
+        </button>
+        <button id="btn-settings" class="icon-btn" title="Settings">
+          <span class="material-symbols-rounded">settings</span>
+        </button>
+      </div>
+    </header>
+
+    <div id="canvas-container">
+      <canvas id="ruler-top" class="ruler ruler-top"></canvas>
+      <canvas id="ruler-left" class="ruler ruler-left"></canvas>
+      <div id="context-overlay" class="context-overlay" style="display: none;">
+        <span>Restoring canvas...</span>
+      </div>
+      <div id="box-select-rect"></div>
+    </div>
+
+    <!-- Image upload (hidden file input) -->
+    <input type="file" id="image-upload" accept="image/jpeg,image/png,image/gif" style="display:none">
+
+    <!-- Layer panel -->
+    <div id="layer-panel" class="layer-panel" style="display:none;">
+      <div class="layer-panel-header">Layers</div>
+      <div id="layer-list" class="layer-list">
+        <!-- Rows built dynamically by LayerPanel.js. Each row:
+          <div class="layer-row" data-layer="name">
+            <span class="layer-name">Label</span>
+            <div class="layer-actions">
+              [layer-specific icons, e.g. upload for image layer]
+              <button class="layer-btn layer-lock"><span class="material-symbols-rounded">lock_open</span></button>
+              <button class="layer-btn layer-vis"><span class="material-symbols-rounded">visibility</span></button>
+              <button class="layer-btn layer-config"><span class="material-symbols-rounded">settings</span></button>
+            </div>
+          </div>
+        -->
+      </div>
+    </div>
+
+    <!-- Layers button -->
+    <button id="btn-layers" class="icon-btn" title="Layers" style="position:fixed;bottom:16px;right:16px;z-index:100;">
+      <span class="material-symbols-rounded">layers</span>
+    </button>
+
+    <!-- Settings panel -->
+    <div id="settings-panel" class="settings-panel">
+      <button class="settings-close" id="settings-close">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+      <h3>Settings</h3>
+      <div class="settings-row">
+        <label for="setting-sel-color">Selection color</label>
+        <input type="color" id="setting-sel-color" value="#ff69b4">
+      </div>
+      <div class="settings-row">
+        <label for="setting-grid">Grid</label>
+        <input type="checkbox" id="setting-grid">
+      </div>
+      <div class="settings-row">
+        <label for="setting-grid-size">Grid size</label>
+        <input type="number" id="setting-grid-size" min="5" max="100" step="5" value="20">
+      </div>
+      <div class="settings-row">
+        <label for="setting-grid-opacity">Grid opacity %</label>
+        <input type="number" id="setting-grid-opacity" min="1" max="100" step="5" value="100">
+      </div>
+      <div class="settings-row">
+        <label for="setting-grid-color">Grid color</label>
+        <input type="color" id="setting-grid-color" value="#777777">
+      </div>
+      <div class="settings-row">
+        <label for="setting-ruler">Ruler</label>
+        <input type="checkbox" id="setting-ruler">
+      </div>
+      <div class="settings-row">
+        <label for="setting-ruler-opacity">Ruler opacity %</label>
+        <input type="number" id="setting-ruler-opacity" min="1" max="100" step="5" value="100">
+      </div>
+      <div class="settings-row">
+        <label for="setting-stitch-scale">Stitch symbol scale</label>
+        <input type="number" id="setting-stitch-scale" min="0.1" max="3.0" step="0.1" value="1.0">
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer config modal -->
+  <div id="layer-config-overlay" class="layer-config-overlay">
+    <div class="layer-config-modal">
+      <button class="layer-config-close" id="layer-config-close">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+      <h3 id="layer-config-title">Layer Settings</h3>
+      <div id="layer-config-body">
+        <!-- Populated dynamically per layer -->
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <script type="module" src="vdzffedit-app.js"></script>
+</body>
+</html>

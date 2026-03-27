@@ -1,0 +1,2440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLB Material Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --panel: #13131a;
+    --panel2: #1a1a24;
+    --border: #2a2a38;
+    --accent: #7c5cfc;
+    --accent2: #fc5c7c;
+    --text: #e0e0f0;
+    --muted: #6a6a8a;
+    --success: #5cfc8a;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 10;
+  }
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-header h1 {
+    font-family: var(--sans);
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .sidebar-header p {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* DROP ZONE */
+  #dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  #dropzone:hover, #dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(124, 92, 252, 0.05);
+  }
+
+  #dropzone input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  #dropzone .dz-icon { font-size: 28px; margin-bottom: 8px; }
+  #dropzone .dz-text { font-size: 11px; color: var(--muted); }
+  #dropzone .dz-hint { font-size: 9px; color: var(--muted); margin-top: 4px; opacity: 0.6; }
+
+  #file-status {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--success);
+    min-height: 14px;
+  }
+
+  /* MATERIAL GRID */
+  #mat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .mat-btn {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 8px 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .mat-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .mat-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 700;
+  }
+
+  /* CONTROLS */
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .control-row:last-child { margin-bottom: 0; }
+
+  .control-label {
+    font-size: 10px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .toggle input:checked + .toggle-track {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+  }
+
+  .toggle input:checked + .toggle-track::after {
+    transform: translateX(16px);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--panel2);
+    border-radius: 2px;
+    outline: none;
+    border: 1px solid var(--border);
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  input[type="color"] {
+    width: 36px;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    padding: 2px;
+  }
+
+  select {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 6px 8px;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  /* MATCAP GRID */
+  #matcap-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .matcap-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+  }
+
+  .matcap-thumb:hover { border-color: var(--accent); }
+  .matcap-thumb.active { border-color: var(--accent2); box-shadow: 0 0 0 2px var(--accent2); }
+
+  /* MESH INFO */
+  #mesh-info {
+    background: var(--panel2);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 10px;
+    line-height: 1.8;
+  }
+
+  .info-row { display: flex; justify-content: space-between; }
+  .info-key { color: var(--muted); }
+  .info-val { color: var(--success); }
+
+  /* MESH PARTS (for split workflow) */
+  #parts-list { margin-top: 8px; }
+  .part-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    background: var(--panel2);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+  .part-name { color: var(--text); }
+  .part-color { }
+
+  /* VIEWPORT */
+  #viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #canvas { display: block; width: 100%; height: 100%; }
+
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(13, 13, 15, 0.8);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 10px;
+    color: var(--muted);
+    backdrop-filter: blur(10px);
+    line-height: 1.8;
+  }
+
+  #hud span { color: var(--accent); }
+
+  /* NO MODEL STATE */
+  #no-model {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  #no-model .nm-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+  #no-model .nm-text { opacity: 0.5; }
+
+  /* BG PICKER */
+  .bg-swatches {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .bg-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.15s;
+  }
+
+  .bg-swatch.active { border-color: var(--accent); }
+
+  /* LOADING */
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13,13,15,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 20;
+    font-size: 13px;
+    color: var(--accent);
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SLIDER VALUE */
+  .slider-wrap { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .slider-val { font-size: 10px; color: var(--accent); width: 28px; text-align: right; flex-shrink: 0; }
+
+  /* SECTION collapse indicator */
+  .section-label { cursor: default; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sidebar-header">
+    <h1>GLB Material Lab</h1>
+    <p>Three.js Material Explorer</p>
+  </div>
+
+  <!-- LOAD -->
+  <div class="section">
+    <div class="section-label">Load Model</div>
+    <div id="dropzone">
+      <input type="file" id="file-input" accept=".glb,.gltf">
+      <div class="dz-icon">📦</div>
+      <div class="dz-text">Drop GLB / GLTF here</div>
+      <div class="dz-hint">or click to browse</div>
+    </div>
+    <div id="file-status"></div>
+  </div>
+
+  <!-- MATERIAL TYPE -->
+  <div class="section">
+    <div class="section-label">Material Type</div>
+    <div id="mat-grid">
+      <button class="mat-btn active" data-mat="MeshBasicMaterial">Basic<br><span style="color:inherit;opacity:0.6;font-size:9px">no lighting</span></button>
+      <button class="mat-btn" data-mat="MeshLambertMaterial">Lambert<br><span style="opacity:0.6;font-size:9px">diffuse</span></button>
+      <button class="mat-btn" data-mat="MeshPhongMaterial">Phong<br><span style="opacity:0.6;font-size:9px">specular</span></button>
+      <button class="mat-btn" data-mat="MeshStandardMaterial">Standard<br><span style="opacity:0.6;font-size:9px">PBR</span></button>
+      <button class="mat-btn" data-mat="MeshToonMaterial">Toon<br><span style="opacity:0.6;font-size:9px">cel shaded</span></button>
+      <button class="mat-btn" data-mat="MeshMatcapMaterial">MatCap<br><span style="opacity:0.6;font-size:9px">captured</span></button>
+      <button class="mat-btn" data-mat="MeshNormalMaterial">Normal<br><span style="opacity:0.6;font-size:9px">debug</span></button>
+      <button class="mat-btn" data-mat="MeshDepthMaterial">Depth<br><span style="opacity:0.6;font-size:9px">debug</span></button>
+      <button class="mat-btn" data-mat="ToonPlus">Toon+<br><span style="opacity:0.6;font-size:9px">+normalmap</span></button>
+      <button class="mat-btn" data-mat="PBRToon">PBR+Toon<br><span style="opacity:0.6;font-size:9px">post-process</span></button>
+      <button class="mat-btn" data-mat="PaletteShader" style="grid-column:span 2">Palette Shader<br><span style="opacity:0.6;font-size:9px">tiny texture · per-part ramp</span></button>
+    </div>
+  </div>
+
+  <!-- SURFACE OPTIONS -->
+  <div class="section">
+    <div class="section-label">Surface</div>
+    <div class="control-row">
+      <span class="control-label">Use Texture</span>
+      <label class="toggle"><input type="checkbox" id="use-texture" checked><div class="toggle-track"></div></label>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Flat Shading</span>
+      <label class="toggle"><input type="checkbox" id="flat-shading"><div class="toggle-track"></div></label>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Wireframe</span>
+      <label class="toggle"><input type="checkbox" id="wireframe"><div class="toggle-track"></div></label>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Double Side</span>
+      <label class="toggle"><input type="checkbox" id="double-side"><div class="toggle-track"></div></label>
+    </div>
+    <div class="control-row" style="margin-top:8px">
+      <span class="control-label">Solid Color</span>
+      <input type="color" id="solid-color" value="#888888">
+    </div>
+  </div>
+
+  <!-- TOON OPTIONS -->
+  <div class="section" id="toon-section" style="display:none">
+    <div class="section-label">Gradient Map</div>
+
+    <!-- Preset buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px">
+      <button class="mat-btn grad-preset active" data-preset="twoTone">2-Tone<br><span style="opacity:0.6;font-size:9px">harsh cel</span></button>
+      <button class="mat-btn grad-preset" data-preset="threeTone">3-Tone<br><span style="opacity:0.6;font-size:9px">classic</span></button>
+      <button class="mat-btn grad-preset" data-preset="smooth">Smooth<br><span style="opacity:0.6;font-size:9px">soft steps</span></button>
+      <button class="mat-btn grad-preset" data-preset="custom">Custom<br><span style="opacity:0.6;font-size:9px">manual</span></button>
+    </div>
+
+    <!-- Gradient preview bar -->
+    <div style="margin-bottom:10px">
+      <div style="font-size:9px;color:var(--muted);margin-bottom:5px;letter-spacing:1px;text-transform:uppercase">Preview</div>
+      <canvas id="grad-preview" width="268" height="32" style="width:100%;height:32px;border-radius:4px;border:1px solid var(--border);display:block"></canvas>
+    </div>
+
+    <!-- Steps slider -->
+    <div class="control-row">
+      <span class="control-label">Steps</span>
+      <div class="slider-wrap">
+        <input type="range" id="toon-steps" min="2" max="16" value="3" step="1">
+        <span class="slider-val" id="toon-steps-val">3</span>
+      </div>
+    </div>
+
+    <!-- Sharpness slider (controls lerp between steps) -->
+    <div class="control-row">
+      <span class="control-label">Sharpness</span>
+      <div class="slider-wrap">
+        <input type="range" id="toon-sharpness" min="0" max="1" step="0.05" value="1">
+        <span class="slider-val" id="toon-sharpness-val">1.0</span>
+      </div>
+    </div>
+
+    <!-- Custom color stops (shown in custom mode) -->
+    <div id="grad-custom-stops" style="display:none;margin-top:8px">
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Color Stops</div>
+      <div id="stops-list"></div>
+      <button id="add-stop" style="width:100%;margin-top:6px;background:var(--panel2);border:1px dashed var(--border);border-radius:4px;color:var(--muted);font-family:var(--mono);font-size:10px;padding:6px;cursor:pointer">+ Add Stop</button>
+    </div>
+
+    <!-- Dark / Light tone pickers for non-custom -->
+    <div id="grad-tone-pickers" style="margin-top:8px">
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Tone Colors</div>
+      <div class="control-row">
+        <span class="control-label">Shadow</span>
+        <input type="color" id="tone-shadow" value="#222222">
+      </div>
+      <div class="control-row">
+        <span class="control-label">Midtone</span>
+        <input type="color" id="tone-mid" value="#888888">
+      </div>
+      <div class="control-row">
+        <span class="control-label">Highlight</span>
+        <input type="color" id="tone-highlight" value="#ffffff">
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCAP OPTIONS -->
+  <div class="section" id="matcap-section" style="display:none">
+    <div class="section-label">MatCap Preset</div>
+    <div id="matcap-grid"></div>
+    <div style="margin-top:10px">
+      <div class="section-label" style="margin-bottom:6px">Per-Part Colors</div>
+      <div style="font-size:9px;color:var(--muted);line-height:1.6">
+        Split mesh in Blender into named parts (blade, handle, gem), then each gets its own MatCap below.
+      </div>
+      <div id="parts-list"></div>
+    </div>
+  </div>
+
+  <!-- PHONG OPTIONS -->
+  <div class="section" id="phong-section" style="display:none">
+    <div class="section-label">Phong Settings</div>
+    <div class="control-row">
+      <span class="control-label">Shininess</span>
+      <div class="slider-wrap">
+        <input type="range" id="shininess" min="0" max="300" value="30">
+        <span class="slider-val" id="shininess-val">30</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PBR TOON (Option C) SECTION -->
+  <div class="section" id="pbrtoon-section" style="display:none">
+    <div class="section-label">PBR + Toon Pass</div>
+    <div style="font-size:9px;color:var(--muted);line-height:1.6;margin-bottom:8px;padding:6px;background:var(--panel2);border-radius:4px">
+      Full PBR lighting → post-process quantizes brightness into toon steps. Preserves normals, specular, AO.
+    </div>
+    <div class="control-row">
+      <span class="control-label">Steps</span>
+      <div class="slider-wrap">
+        <input type="range" id="pbr-steps" min="2" max="16" value="4" step="1">
+        <span class="slider-val" id="pbr-steps-val">4</span>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Saturation</span>
+      <div class="slider-wrap">
+        <input type="range" id="pbr-saturation" min="0" max="3" value="1.2" step="0.05">
+        <span class="slider-val" id="pbr-saturation-val">1.2</span>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Tone Colors</span>
+      <label class="toggle"><input type="checkbox" id="pbr-use-tones"><div class="toggle-track"></div></label>
+    </div>
+    <div id="pbr-tone-picks" style="display:none">
+      <div class="control-row">
+        <span class="control-label">Shadow</span>
+        <input type="color" id="pbr-shadow" value="#1a1a2e">
+      </div>
+      <div class="control-row">
+        <span class="control-label">Midtone</span>
+        <input type="color" id="pbr-mid" value="#7a6a88">
+      </div>
+      <div class="control-row">
+        <span class="control-label">Highlight</span>
+        <input type="color" id="pbr-highlight" value="#ffe8c0">
+      </div>
+    </div>
+  </div>
+
+  <!-- TOON PLUS (Option A) SECTION -->
+  <div class="section" id="toonplus-section" style="display:none">
+    <div class="section-label">Toon+ Settings</div>
+    <div style="font-size:9px;color:var(--muted);line-height:1.6;margin-bottom:8px;padding:6px;background:var(--panel2);border-radius:4px">
+      Custom shader — reads normal map before quantizing. Shares step/tone settings with Toon panel above.
+    </div>
+    <div class="control-row">
+      <span class="control-label">Normal Scale</span>
+      <div class="slider-wrap">
+        <input type="range" id="toonplus-normalscale" min="0" max="3" value="1" step="0.05">
+        <span class="slider-val" id="toonplus-normalscale-val">1.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PALETTE SHADER SECTION -->
+  <div class="section" id="palette-section" style="display:none">
+    <div class="section-label">Palette Editor</div>
+    <div style="font-size:9px;color:var(--muted);line-height:1.6;margin-bottom:8px;padding:6px;background:var(--panel2);border-radius:4px">
+      Each mesh part gets a color ramp (shadow → mid → highlight). Stored as a tiny texture — one row per part.
+    </div>
+
+    <!-- Shading levels -->
+    <div class="control-row">
+      <span class="control-label">Shade Steps</span>
+      <div class="slider-wrap">
+        <input type="range" id="pal-steps" min="2" max="8" value="3" step="1">
+        <span class="slider-val" id="pal-steps-val">3</span>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Hardness</span>
+      <div class="slider-wrap">
+        <input type="range" id="pal-hardness" min="0" max="1" step="0.05" value="0.9">
+        <span class="slider-val" id="pal-hardness-val">0.9</span>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Light Dir X</span>
+      <div class="slider-wrap">
+        <input type="range" id="pal-light-x" min="-1" max="1" step="0.05" value="0.5">
+        <span class="slider-val" id="pal-light-x-val">0.5</span>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Light Dir Y</span>
+      <div class="slider-wrap">
+        <input type="range" id="pal-light-y" min="-1" max="1" step="0.05" value="1.0">
+        <span class="slider-val" id="pal-light-y-val">1.0</span>
+      </div>
+    </div>
+
+    <!-- Palette texture preview -->
+    <div style="margin:10px 0 6px">
+      <div style="font-size:9px;color:var(--muted);margin-bottom:5px;letter-spacing:1px;text-transform:uppercase">Palette Texture</div>
+      <canvas id="pal-preview" style="width:100%;height:40px;border-radius:4px;border:1px solid var(--border);image-rendering:pixelated;display:block"></canvas>
+    </div>
+
+    <!-- Per-part color editors -->
+    <div id="pal-parts-editor">
+      <div style="font-size:9px;color:var(--muted);margin-top:8px">Load a model to edit per-part colors</div>
+    </div>
+
+    <!-- Randomize -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+      <button id="pal-randomize" class="mat-btn" style="font-size:10px;padding:8px">🎲 Randomize</button>
+      <button id="pal-harmonize" class="mat-btn" style="font-size:10px;padding:8px">🎨 Harmonize</button>
+    </div>
+  </div>
+
+  <!-- LIGHTING -->
+  <div class="section">
+    <div class="section-label">Lighting</div>
+    <div class="control-row">
+      <span class="control-label">Ambient</span>
+      <div class="slider-wrap">
+        <input type="range" id="ambient-int" min="0" max="3" step="0.1" value="0.8">
+        <span class="slider-val" id="ambient-val">0.8</span>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Directional</span>
+      <div class="slider-wrap">
+        <input type="range" id="dir-int" min="0" max="5" step="0.1" value="1.5">
+        <span class="slider-val" id="dir-val">1.5</span>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Rim Light</span>
+      <label class="toggle"><input type="checkbox" id="rim-light"><div class="toggle-track"></div></label>
+    </div>
+    <div class="control-row">
+      <span class="control-label">Light Color</span>
+      <input type="color" id="light-color" value="#ffffff">
+    </div>
+    <div class="control-row">
+      <span class="control-label">Auto Rotate</span>
+      <label class="toggle"><input type="checkbox" id="auto-rotate"><div class="toggle-track"></div></label>
+    </div>
+  </div>
+
+  <!-- EDGES -->
+  <div class="section">
+    <div class="section-label">Edge Techniques</div>
+    <div class="control-row">
+      <span class="control-label">EdgesGeometry</span>
+      <label class="toggle"><input type="checkbox" id="edges-geo"><div class="toggle-track"></div></label>
+    </div>
+    <div id="edges-geo-opts" style="display:none">
+      <div class="control-row" style="margin-top:6px">
+        <span class="control-label">Threshold°</span>
+        <div class="slider-wrap">
+          <input type="range" id="edges-threshold" min="1" max="90" value="15" step="1">
+          <span class="slider-val" id="edges-threshold-val">15</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Gradient</span>
+        <label class="toggle"><input type="checkbox" id="edges-gradient"><div class="toggle-track"></div></label>
+      </div>
+
+      <!-- Flat color (shown when gradient off) -->
+      <div id="edges-flat-color" class="control-row">
+        <span class="control-label">Color</span>
+        <input type="color" id="edges-color" value="#000000">
+      </div>
+
+      <!-- Gradient options (shown when gradient on) -->
+      <div id="edges-gradient-opts" style="display:none">
+        <div class="control-row">
+          <span class="control-label">Top Color</span>
+          <input type="color" id="edges-grad-top" value="#ffffff">
+        </div>
+        <div class="control-row">
+          <span class="control-label">Bot Color</span>
+          <input type="color" id="edges-grad-bot" value="#000000">
+        </div>
+        <div class="control-row">
+          <span class="control-label">Direction</span>
+          <select id="edges-grad-dir" style="flex:1">
+            <option value="y">Vertical (Y)</option>
+            <option value="x">Horizontal (X)</option>
+            <option value="radial">Radial</option>
+            <option value="angle">Angle</option>
+          </select>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Contrast</span>
+          <div class="slider-wrap">
+            <input type="range" id="edges-grad-contrast" min="0.1" max="5" step="0.1" value="1">
+            <span class="slider-val" id="edges-grad-contrast-val">1.0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <span class="control-label">Opacity</span>
+        <div class="slider-wrap">
+          <input type="range" id="edges-opacity" min="0.1" max="1" step="0.05" value="1">
+          <span class="slider-val" id="edges-opacity-val">1.0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-row" style="margin-top:10px">
+      <span class="control-label">Inverted Hull</span>
+      <label class="toggle"><input type="checkbox" id="inv-hull"><div class="toggle-track"></div></label>
+    </div>
+    <div id="inv-hull-opts" style="display:none">
+      <div class="control-row" style="margin-top:6px">
+        <span class="control-label">Thickness</span>
+        <div class="slider-wrap">
+          <input type="range" id="hull-thickness" min="0" max="20" step="0.1" value="3">
+          <span class="slider-val" id="hull-thickness-val">3.0</span>
+        </div>
+      </div>
+      <div class="control-row">
+        <span class="control-label">Smooth Normals</span>
+        <label class="toggle"><input type="checkbox" id="hull-smooth-normals" checked><div class="toggle-track"></div></label>
+      </div>
+      <div style="font-size:9px;color:var(--muted);line-height:1.6;margin:4px 0 8px;padding:6px;background:var(--panel2);border-radius:4px">
+        <b style="color:var(--text)">OFF</b> face normals — gaps at sharp corners<br>
+        <b style="color:var(--text)">ON</b>&nbsp; averaged normals — clean silhouette
+      </div>
+      <div class="control-row">
+        <span class="control-label">Color</span>
+        <input type="color" id="hull-color" value="#000000">
+      </div>
+      <div class="control-row">
+        <span class="control-label">Opacity</span>
+        <div class="slider-wrap">
+          <input type="range" id="hull-opacity" min="0.1" max="1" step="0.05" value="1">
+          <span class="slider-val" id="hull-opacity-val">1.0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BACKGROUND -->
+  <div class="section">
+    <div class="section-label">Background</div>
+    <div class="bg-swatches">
+      <div class="bg-swatch active" data-color="#0d0d0f" style="background:#0d0d0f;border:1px solid #333"></div>
+      <div class="bg-swatch" data-color="#1a1a2e" style="background:#1a1a2e"></div>
+      <div class="bg-swatch" data-color="#2d1b1b" style="background:#2d1b1b"></div>
+      <div class="bg-swatch" data-color="#1b2d1b" style="background:#1b2d1b"></div>
+      <div class="bg-swatch" data-color="#ffffff" style="background:#ffffff;border:1px solid #ddd"></div>
+      <div class="bg-swatch" data-color="#888888" style="background:#888888"></div>
+      <div class="bg-swatch" data-color="#222233" style="background:#222233"></div>
+    </div>
+  </div>
+
+  <!-- MESH INFO -->
+  <div class="section">
+    <div class="section-label">Model Info</div>
+    <div id="mesh-info">
+      <div style="color:var(--muted);font-size:10px">No model loaded</div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEWPORT -->
+<div id="viewport">
+  <canvas id="canvas"></canvas>
+  <div id="no-model">
+    <div class="nm-icon">🗡️</div>
+    <div class="nm-text">Drop a GLB to begin</div>
+  </div>
+  <div id="hud">
+    <div>MAT <span id="hud-mat">—</span></div>
+    <div>TRIS <span id="hud-tris">—</span></div>
+    <div>VERTS <span id="hud-verts">—</span></div>
+    <div>MESHES <span id="hud-meshes">—</span></div>
+  </div>
+  <div id="loading"><div class="spinner"></div><span>Loading...</span></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+// ─── SCENE SETUP ─────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const viewport = document.getElementById('viewport');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0d0d0f');
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 1000);
+camera.position.set(0, 0, 3);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.autoRotateSpeed = 2;
+
+// ─── POST-PROCESS COMPOSER (for PBRToon mode) ─────────────────────────────────
+const ToonQuantizeShader = {
+  uniforms: {
+    tDiffuse:    { value: null },
+    uSteps:      { value: 4.0 },
+    uShadowTone: { value: new THREE.Color(0x222222) },
+    uMidTone:    { value: new THREE.Color(0x888888) },
+    uHighTone:   { value: new THREE.Color(0xffffff) },
+    uUseTones:   { value: false },
+    uSaturation: { value: 1.2 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float     uSteps;
+    uniform vec3      uShadowTone;
+    uniform vec3      uMidTone;
+    uniform vec3      uHighTone;
+    uniform bool      uUseTones;
+    uniform float     uSaturation;
+    varying vec2 vUv;
+
+    vec3 adjustSaturation(vec3 color, float sat) {
+      float grey = dot(color, vec3(0.299, 0.587, 0.114));
+      return mix(vec3(grey), color, sat);
+    }
+
+    vec3 toneRamp(float t) {
+      if (t < 0.5) return mix(uShadowTone, uMidTone, t * 2.0);
+      return mix(uMidTone, uHighTone, (t - 0.5) * 2.0);
+    }
+
+    void main() {
+      vec4 texel = texture2D(tDiffuse, vUv);
+      vec3 color = texel.rgb;
+
+      // Perceived luminance
+      float lum = dot(color, vec3(0.299, 0.587, 0.114));
+
+      // Quantize luminance into steps
+      float qLum = floor(lum * uSteps + 0.5) / uSteps;
+
+      // Preserve hue/saturation, replace luminance
+      vec3 result;
+      if (uUseTones) {
+        // Use custom tone ramp colors
+        vec3 toneColor = toneRamp(qLum);
+        result = toneColor * (color / max(lum, 0.001));
+        result = clamp(result, 0.0, 1.0);
+      } else {
+        // Simple luminance quantize — preserves original hue
+        result = color * (qLum / max(lum, 0.001));
+        result = clamp(result, 0.0, 1.0);
+      }
+
+      result = adjustSaturation(result, uSaturation);
+      gl_FragColor = vec4(result, texel.a);
+    }
+  `
+};
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const toonPass = new ShaderPass(ToonQuantizeShader);
+toonPass.enabled = false;
+composer.addPass(toonPass);
+
+// ─── LIGHTS ──────────────────────────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dirLight.position.set(5, 8, 5);
+dirLight.castShadow = true;
+scene.add(dirLight);
+
+const rimLight = new THREE.DirectionalLight(0x7c5cfc, 0.8);
+rimLight.position.set(-5, -2, -5);
+rimLight.visible = false;
+scene.add(rimLight);
+
+// Ground plane (subtle)
+const groundGeo = new THREE.PlaneGeometry(20, 20);
+const groundMat = new THREE.ShadowMaterial({ opacity: 0.2 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -1;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let currentModel = null;
+let originalMaterials = new Map();
+let originalTextures = new Map();
+let currentMatType = 'MeshBasicMaterial';
+let meshes = [];
+let totalTris = 0;
+let totalVerts = 0;
+
+// ─── MATCAP TEXTURES ─────────────────────────────────────────────────────────
+const matcapUrls = [
+  { name: 'Gold',    url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/B77B5B_E9D9BC_C9A87C_D4B48C.png' },
+  { name: 'Chrome',  url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/2E2E2E_787878_FFFFFF_5E5E5E.png' },
+  { name: 'Jade',    url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/2E763A_78A0B7_B3D1CF_14F209.png' },
+  { name: 'Blue',    url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/3B3C3F_DAD9D5_898889_B1AFAC.png' },
+  { name: 'Clay',    url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/C7AC7D_4D3B27_8A6C44_B8935A.png' },
+  { name: 'Plastic', url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/F79686_FDDCBB_F1502A_FB784E.png' },
+  { name: 'Pearl',   url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/F5F5F5_EBEBEB_E0E0E0_D4D4D4.png' },
+  { name: 'Dark',    url: 'https://raw.githubusercontent.com/nidorx/matcaps/master/256/1A1A1A_3D3D3D_2B2B2B_282828.png' },
+];
+
+let matcapTextures = {};
+let currentMatcap = 0;
+const textureLoader = new THREE.TextureLoader();
+
+function loadMatcaps() {
+  const grid = document.getElementById('matcap-grid');
+  grid.innerHTML = '';
+  matcapUrls.forEach((mc, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'matcap-thumb' + (i === 0 ? ' active' : '');
+    thumb.title = mc.name;
+    thumb.style.backgroundImage = `url(${mc.url})`;
+    thumb.addEventListener('click', () => {
+      document.querySelectorAll('.matcap-thumb').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+      currentMatcap = i;
+      if (currentMatType === 'MeshMatcapMaterial') applyMaterial();
+    });
+    grid.appendChild(thumb);
+
+    // Preload
+    textureLoader.load(mc.url, tex => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      matcapTextures[i] = tex;
+    });
+  });
+}
+
+loadMatcaps();
+
+// ─── GRADIENT MAP SYSTEM ─────────────────────────────────────────────────────
+
+let currentGradientMap = null;
+let gradientPreset = 'twoTone';
+
+// Custom stops state
+let customStops = [
+  { pos: 0.0, color: '#222222' },
+  { pos: 0.5, color: '#888888' },
+  { pos: 1.0, color: '#ffffff' },
+];
+
+const gradientPresets = {
+  twoTone:   { steps: 2, sharpness: 1.0 },
+  threeTone:  { steps: 3, sharpness: 1.0 },
+  smooth:    { steps: 8, sharpness: 0.3 },
+  custom:    null,
+};
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16)/255;
+  const g = parseInt(hex.slice(3,5),16)/255;
+  const b = parseInt(hex.slice(5,7),16)/255;
+  return [r, g, b];
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function sampleGradientStops(stops, t) {
+  // Find surrounding stops
+  let lo = stops[0], hi = stops[stops.length-1];
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (t >= stops[i].pos && t <= stops[i+1].pos) {
+      lo = stops[i]; hi = stops[i+1]; break;
+    }
+  }
+  const range = hi.pos - lo.pos;
+  const local = range === 0 ? 0 : (t - lo.pos) / range;
+  const loRgb = hexToRgb(lo.color);
+  const hiRgb = hexToRgb(hi.color);
+  return [lerp(loRgb[0], hiRgb[0], local), lerp(loRgb[1], hiRgb[1], local), lerp(loRgb[2], hiRgb[2], local)];
+}
+
+function buildGradientData(steps, sharpness) {
+  // Build gradient from tone pickers
+  const shadow    = document.getElementById('tone-shadow').value;
+  const mid       = document.getElementById('tone-mid').value;
+  const highlight = document.getElementById('tone-highlight').value;
+  const stops = [
+    { pos: 0.0, color: shadow },
+    { pos: 0.5, color: mid },
+    { pos: 1.0, color: highlight },
+  ];
+  return buildGradientFromStops(stops, steps, sharpness);
+}
+
+function buildGradientFromStops(stops, steps, sharpness) {
+  const size = 256;
+  const data = new Uint8Array(size * 3);
+
+  for (let i = 0; i < size; i++) {
+    const t = i / (size - 1);
+
+    // Quantize t into steps
+    let qt;
+    if (sharpness >= 0.99) {
+      // Hard steps
+      qt = Math.floor(t * steps) / steps;
+      qt = Math.min(qt, (steps-1)/steps);
+      qt = qt + 0.5/steps; // center of band
+    } else {
+      // Soft steps — blend between quantized and smooth
+      const hard = Math.floor(t * steps) / steps + 0.5/steps;
+      const smooth = t;
+      qt = lerp(smooth, hard, sharpness);
+    }
+    qt = Math.max(0, Math.min(1, qt));
+
+    const [r, g, b] = sampleGradientStops(stops, qt);
+    data[i * 3 + 0] = Math.round(r * 255);
+    data[i * 3 + 1] = Math.round(g * 255);
+    data[i * 3 + 2] = Math.round(b * 255);
+  }
+  return data;
+}
+
+function createGradientMap(steps) {
+  // Legacy compat — used by applyMaterial fallback
+  return buildGradientTexture();
+}
+
+function buildGradientTexture() {
+  const steps = parseInt(document.getElementById('toon-steps').value);
+  const sharpness = parseFloat(document.getElementById('toon-sharpness').value);
+
+  let data;
+  if (gradientPreset === 'custom') {
+    data = buildGradientFromStops(customStops, steps, sharpness);
+  } else {
+    data = buildGradientData(steps, sharpness);
+  }
+
+  const tex = new THREE.DataTexture(data, 256, 1, THREE.RGBFormat);
+  tex.needsUpdate = true;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+function refreshGradient() {
+  currentGradientMap = buildGradientTexture();
+  drawGradientPreview();
+  if (currentMatType === 'MeshToonMaterial') applyMaterial();
+}
+
+function drawGradientPreview() {
+  const canvas = document.getElementById('grad-preview');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const steps = parseInt(document.getElementById('toon-steps').value);
+  const sharpness = parseFloat(document.getElementById('toon-sharpness').value);
+
+  let data;
+  if (gradientPreset === 'custom') {
+    data = buildGradientFromStops(customStops, steps, sharpness);
+  } else {
+    data = buildGradientData(steps, sharpness);
+  }
+
+  // Draw pixel by pixel (fast enough at 256px)
+  const imageData = ctx.createImageData(W, H);
+  for (let x = 0; x < W; x++) {
+    const srcIdx = Math.floor((x / W) * 256);
+    const r = data[srcIdx * 3];
+    const g = data[srcIdx * 3 + 1];
+    const b = data[srcIdx * 3 + 2];
+    for (let y = 0; y < H; y++) {
+      const idx = (y * W + x) * 4;
+      imageData.data[idx]   = r;
+      imageData.data[idx+1] = g;
+      imageData.data[idx+2] = b;
+      imageData.data[idx+3] = 255;
+    }
+  }
+  ctx.putImageData(imageData, 0, 0);
+
+  // Draw step markers
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  for (let s = 1; s < steps; s++) {
+    const x = Math.round((s / steps) * W);
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  }
+}
+
+// ── Custom stops UI ───────────────────────────────────────────────────────────
+function renderStopsList() {
+  const list = document.getElementById('stops-list');
+  list.innerHTML = '';
+  customStops.forEach((stop, i) => {
+    const row = document.createElement('div');
+    row.className = 'control-row';
+    row.style.cssText = 'margin-bottom:5px;align-items:center;gap:6px';
+    row.innerHTML = `
+      <input type="range" style="flex:1;height:4px" min="0" max="1" step="0.01" value="${stop.pos}" data-idx="${i}" class="stop-pos">
+      <span style="font-size:9px;color:var(--muted);width:28px;text-align:right">${stop.pos.toFixed(2)}</span>
+      <input type="color" value="${stop.color}" data-idx="${i}" class="stop-color" style="width:28px;height:22px;border:1px solid var(--border);border-radius:3px;background:none;cursor:pointer;padding:2px">
+      ${customStops.length > 2 ? `<button data-idx="${i}" class="stop-del" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 2px">✕</button>` : ''}
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('.stop-pos').forEach(el => {
+    el.addEventListener('input', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      customStops[idx].pos = parseFloat(e.target.value);
+      customStops.sort((a,b) => a.pos - b.pos);
+      renderStopsList();
+      refreshGradient();
+    });
+  });
+  list.querySelectorAll('.stop-color').forEach(el => {
+    el.addEventListener('input', e => {
+      customStops[parseInt(e.target.dataset.idx)].color = e.target.value;
+      refreshGradient();
+    });
+  });
+  list.querySelectorAll('.stop-del').forEach(el => {
+    el.addEventListener('click', e => {
+      customStops.splice(parseInt(e.target.dataset.idx), 1);
+      renderStopsList();
+      refreshGradient();
+    });
+  });
+}
+
+document.getElementById('add-stop').addEventListener('click', () => {
+  customStops.push({ pos: 0.75, color: '#aaaaaa' });
+  customStops.sort((a,b) => a.pos - b.pos);
+  renderStopsList();
+  refreshGradient();
+});
+
+// ── Preset buttons ────────────────────────────────────────────────────────────
+document.querySelectorAll('.grad-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.grad-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    gradientPreset = btn.dataset.preset;
+
+    const isCustom = gradientPreset === 'custom';
+    document.getElementById('grad-custom-stops').style.display = isCustom ? 'block' : 'none';
+    document.getElementById('grad-tone-pickers').style.display = isCustom ? 'none' : 'block';
+
+    if (gradientPreset !== 'custom' && gradientPresets[gradientPreset]) {
+      const p = gradientPresets[gradientPreset];
+      document.getElementById('toon-steps').value = p.steps;
+      document.getElementById('toon-steps-val').textContent = p.steps;
+      document.getElementById('toon-sharpness').value = p.sharpness;
+      document.getElementById('toon-sharpness-val').textContent = p.sharpness.toFixed(1);
+    }
+    if (isCustom) renderStopsList();
+    refreshGradient();
+  });
+});
+
+// ── Sliders + color pickers ───────────────────────────────────────────────────
+const toonSteps = document.getElementById('toon-steps');
+toonSteps.addEventListener('input', () => {
+  document.getElementById('toon-steps-val').textContent = toonSteps.value;
+  refreshGradient();
+});
+
+document.getElementById('toon-sharpness').addEventListener('input', e => {
+  document.getElementById('toon-sharpness-val').textContent = parseFloat(e.target.value).toFixed(1);
+  refreshGradient();
+});
+
+['tone-shadow','tone-mid','tone-highlight'].forEach(id => {
+  document.getElementById(id).addEventListener('input', refreshGradient);
+});
+
+// Initialize
+currentGradientMap = buildGradientTexture();
+drawGradientPreview();
+
+
+
+// ─── MATERIAL FACTORY ─────────────────────────────────────────────────────────
+function getMaterialParams(originalMat, meshName, meshNode) {
+  const useTexture = document.getElementById('use-texture').checked;
+  const flatShading = document.getElementById('flat-shading').checked;
+  const wireframe = document.getElementById('wireframe').checked;
+  const doubleSide = document.getElementById('double-side').checked;
+  const solidColor = new THREE.Color(document.getElementById('solid-color').value);
+  const shininess = parseInt(document.getElementById('shininess').value);
+
+  const tex = originalTextures.get(meshName);
+
+  const base = {
+    wireframe,
+    flatShading,
+    side: doubleSide ? THREE.DoubleSide : THREE.FrontSide,
+  };
+
+  switch (currentMatType) {
+    case 'MeshBasicMaterial':
+      return new THREE.MeshBasicMaterial({
+        ...base,
+        map: useTexture && tex ? tex : null,
+        color: useTexture && tex ? 0xffffff : solidColor,
+      });
+
+    case 'MeshLambertMaterial':
+      return new THREE.MeshLambertMaterial({
+        ...base,
+        map: useTexture && tex ? tex : null,
+        color: useTexture && tex ? 0xffffff : solidColor,
+      });
+
+    case 'MeshPhongMaterial':
+      return new THREE.MeshPhongMaterial({
+        ...base,
+        map: useTexture && tex ? tex : null,
+        color: useTexture && tex ? 0xffffff : solidColor,
+        shininess,
+      });
+
+    case 'MeshStandardMaterial':
+      return new THREE.MeshStandardMaterial({
+        ...base,
+        map: useTexture && tex ? tex : null,
+        color: useTexture && tex ? 0xffffff : solidColor,
+        roughness: 0.5,
+        metalness: 0.3,
+      });
+
+    case 'MeshToonMaterial':
+      return new THREE.MeshToonMaterial({
+        ...base,
+        map: useTexture && tex ? tex : null,
+        color: useTexture && tex ? 0xffffff : solidColor,
+        gradientMap: currentGradientMap,
+      });
+
+    case 'MeshMatcapMaterial':
+      return new THREE.MeshMatcapMaterial({
+        ...base,
+        matcap: matcapTextures[currentMatcap] || null,
+        map: useTexture && tex ? tex : null,
+        color: useTexture && tex ? 0xffffff : solidColor,
+      });
+
+    case 'MeshNormalMaterial':
+      return new THREE.MeshNormalMaterial({ ...base, flatShading });
+
+    case 'MeshDepthMaterial':
+      return new THREE.MeshDepthMaterial({ ...base, wireframe });
+
+    // Option A — custom toon with normal map
+    case 'ToonPlus': {
+      const steps     = parseInt(document.getElementById('toon-steps').value);
+      const sharpness = parseFloat(document.getElementById('toon-sharpness').value);
+      const shadow    = new THREE.Color(document.getElementById('tone-shadow').value);
+      const mid       = new THREE.Color(document.getElementById('tone-mid').value);
+      const high      = new THREE.Color(document.getElementById('tone-highlight').value);
+      const origMat   = originalMaterials.get(meshNode?.uuid);
+      const normalMap = origMat?.normalMap || null;
+      const albedoTex = useTexture && tex ? tex : null;
+
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uAlbedo:    { value: albedoTex },
+          uHasAlbedo: { value: !!albedoTex },
+          uBaseColor: { value: useTexture && tex ? new THREE.Color(1,1,1) : solidColor.clone() },
+          uNormalMap: { value: normalMap },
+          uHasNormal: { value: !!normalMap },
+          uNormalScale: { value: 1.0 },
+          uSteps:     { value: steps },
+          uSharpness: { value: sharpness },
+          uShadow:    { value: shadow },
+          uMid:       { value: mid },
+          uHighlight: { value: high },
+          uLightDir:  { value: new THREE.Vector3(0.5, 1.0, 0.5).normalize() },
+          uAmbient:   { value: ambientLight.intensity },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          varying vec3 vNormal;
+          varying vec3 vViewPos;
+
+          void main() {
+            vUv      = uv;
+            vNormal  = normalize(normalMatrix * normal);
+            vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+            vViewPos = mvPos.xyz;
+            gl_Position = projectionMatrix * mvPos;
+          }
+        `,
+        fragmentShader: `
+          #extension GL_OES_standard_derivatives : enable
+          uniform sampler2D uAlbedo;
+          uniform bool      uHasAlbedo;
+          uniform vec3      uBaseColor;
+          uniform sampler2D uNormalMap;
+          uniform bool      uHasNormal;
+          uniform float     uNormalScale;
+          uniform float     uSteps;
+          uniform float     uSharpness;
+          uniform vec3      uShadow;
+          uniform vec3      uMid;
+          uniform vec3      uHighlight;
+          uniform vec3      uLightDir;
+          uniform float     uAmbient;
+          varying vec2 vUv;
+          varying vec3 vNormal;
+          varying vec3 vViewPos;
+
+          // Derivative-based TBN — works without tangent attribute
+          mat3 getTBN(vec3 N) {
+            vec3 dp1  = dFdx(vViewPos);
+            vec3 dp2  = dFdy(vViewPos);
+            vec2 duv1 = dFdx(vUv);
+            vec2 duv2 = dFdy(vUv);
+            vec3 T    = normalize(dp1 * duv2.t - dp2 * duv1.t);
+            vec3 B    = normalize(cross(N, T));
+            return mat3(T, B, N);
+          }
+
+          vec3 toneRamp(float t) {
+            if (t < 0.5) return mix(uShadow, uMid, t * 2.0);
+            return mix(uMid, uHighlight, (t - 0.5) * 2.0);
+          }
+
+          void main() {
+            vec3 N = normalize(vNormal);
+
+            // Normal map via derivative TBN (no tangent attribute needed)
+            if (uHasNormal) {
+              mat3 tbn = getTBN(N);
+              vec3 nm  = texture2D(uNormalMap, vUv).rgb * 2.0 - 1.0;
+              nm.xy   *= uNormalScale;
+              N        = normalize(tbn * nm);
+            }
+
+            float NdotL = max(dot(N, normalize(uLightDir)), 0.0);
+            float hard  = floor(NdotL * uSteps + 0.5) / uSteps;
+            float qDiff = clamp(mix(NdotL, hard, uSharpness) + uAmbient * 0.3, 0.0, 1.0);
+
+            vec4 albedo = uHasAlbedo ? texture2D(uAlbedo, vUv) : vec4(uBaseColor, 1.0);
+            vec3 tone   = toneRamp(qDiff);
+            gl_FragColor = vec4(albedo.rgb * tone, albedo.a);
+          }
+        `,
+        wireframe,
+        side: doubleSide ? THREE.DoubleSide : THREE.FrontSide,
+        transparent: false,
+      });
+    }
+
+    case 'PaletteShader': {
+      if (!paletteTexture) buildPaletteTexture();
+      const pSteps    = parseInt(document.getElementById('pal-steps').value);
+      const pHardness = parseFloat(document.getElementById('pal-hardness').value);
+      const pDir      = getPaletteLightDir();
+      const pV        = getPaletteV(meshName);
+
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uPalette:  { value: paletteTexture },
+          uPaletteV: { value: pV },
+          uLightDir: { value: pDir },
+          uSteps:    { value: pSteps },
+          uHardness: { value: pHardness },
+        },
+        vertexShader:   paletteVertexShader,
+        fragmentShader: paletteFragmentShader,
+        wireframe,
+        side: doubleSide ? THREE.DoubleSide : THREE.FrontSide,
+      });
+    }
+
+    // Option C — PBR Standard with post-process toon quantization
+    // Material itself is Standard; toonPass handles the quantization
+    case 'PBRToon':
+      return new THREE.MeshStandardMaterial({
+        ...base,
+        map: useTexture && tex ? tex : null,
+        color: useTexture && tex ? 0xffffff : solidColor,
+        roughness: 0.5,
+        metalness: 0.3,
+      });
+
+    default:
+      return new THREE.MeshBasicMaterial({ ...base });
+  }
+}
+
+function applyMaterial() {
+  if (!currentModel) return;
+  currentModel.traverse(node => {
+    if (!node.isMesh) return;
+    const newMat = getMaterialParams(originalMaterials.get(node.uuid), node.name, node);
+    node.material = newMat;
+    node.material.needsUpdate = true;
+    node.castShadow = true;
+    node.receiveShadow = true;
+  });
+}
+
+// ─── LOAD GLB ─────────────────────────────────────────────────────────────────
+const loader = new GLTFLoader();
+
+function loadGLB(file) {
+  const url = URL.createObjectURL(file);
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('no-model').style.display = 'none';
+
+  loader.load(url, (gltf) => {
+    // Remove old model
+    if (currentModel) {
+      scene.remove(currentModel);
+      currentModel = null;
+    }
+
+    originalMaterials.clear();
+    originalTextures.clear();
+    meshes = [];
+    totalTris = 0;
+    totalVerts = 0;
+
+    const model = gltf.scene;
+
+    // Collect meshes + store originals
+    model.traverse(node => {
+      if (node.isMesh) {
+        meshes.push(node);
+        originalMaterials.set(node.uuid, node.material.clone());
+
+        // Store texture
+        const mat = node.material;
+        if (mat.map) {
+          originalTextures.set(node.name, mat.map);
+        } else if (mat.map === undefined) {
+          originalTextures.set(node.name, null);
+        }
+
+        // Count geometry
+        const geo = node.geometry;
+        if (geo.index) totalTris += geo.index.count / 3;
+        if (geo.attributes.position) totalVerts += geo.attributes.position.count;
+
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+
+    // Center + scale
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = 2 / maxDim;
+    model.scale.setScalar(scale);
+    model.position.sub(center.multiplyScalar(scale));
+
+    scene.add(model);
+    currentModel = model;
+
+    // Apply current material settings
+    applyMaterial();
+
+    // Update info
+    updateMeshInfo(file.name);
+    updatePartsPanel();
+
+    // Init palette for new model
+    initPaletteForModel();
+
+    // Rebuild edge overlays if active
+    if (document.getElementById('edges-geo').checked) buildEdgeLines();
+    if (document.getElementById('inv-hull').checked) buildHulls();
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('file-status').textContent = `✓ ${file.name}`;
+
+    // Update HUD
+    document.getElementById('hud-tris').textContent = Math.round(totalTris).toLocaleString();
+    document.getElementById('hud-verts').textContent = totalVerts.toLocaleString();
+    document.getElementById('hud-meshes').textContent = meshes.length;
+
+    URL.revokeObjectURL(url);
+  }, undefined, (err) => {
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('file-status').textContent = '✗ Failed to load';
+  });
+}
+
+function updateMeshInfo(filename) {
+  const names = meshes.map(m => m.name || '(unnamed)').join(', ');
+  document.getElementById('mesh-info').innerHTML = `
+    <div class="info-row"><span class="info-key">File</span><span class="info-val">${filename}</span></div>
+    <div class="info-row"><span class="info-key">Meshes</span><span class="info-val">${meshes.length}</span></div>
+    <div class="info-row"><span class="info-key">Triangles</span><span class="info-val">${Math.round(totalTris).toLocaleString()}</span></div>
+    <div class="info-row"><span class="info-key">Vertices</span><span class="info-val">${totalVerts.toLocaleString()}</span></div>
+    <div class="info-row"><span class="info-key">Names</span><span class="info-val" style="font-size:9px;text-align:right;max-width:160px;word-break:break-all">${names}</span></div>
+  `;
+}
+
+const partMatcapColors = {};
+
+function updatePartsPanel() {
+  const list = document.getElementById('parts-list');
+  if (meshes.length <= 1) {
+    list.innerHTML = '<div style="font-size:9px;color:var(--muted);margin-top:6px">Single mesh — split in Blender<br>for per-part MatCap control.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  meshes.forEach(mesh => {
+    const name = mesh.name || 'mesh';
+    const row = document.createElement('div');
+    row.className = 'part-row';
+    const defaultColor = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+    partMatcapColors[name] = defaultColor;
+    row.innerHTML = `
+      <span class="part-name">${name}</span>
+      <input type="color" class="part-color" data-mesh="${name}" value="${defaultColor}" style="width:28px;height:22px;border:1px solid var(--border);border-radius:3px;background:none;cursor:pointer;padding:2px">
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ─── UI EVENTS ────────────────────────────────────────────────────────────────
+// File input
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) loadGLB(e.target.files[0]);
+});
+
+// Drag & drop
+const dropzone = document.getElementById('dropzone');
+document.body.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+document.body.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+document.body.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && (file.name.endsWith('.glb') || file.name.endsWith('.gltf'))) loadGLB(file);
+});
+
+// Material buttons
+document.querySelectorAll('.mat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMatType = btn.dataset.mat;
+    document.getElementById('hud-mat').textContent = currentMatType.replace('Mesh','').replace('Material','');
+    document.getElementById('toon-section').style.display    = ['MeshToonMaterial','ToonPlus'].includes(currentMatType) ? 'block' : 'none';
+    document.getElementById('toonplus-section').style.display = currentMatType === 'ToonPlus'            ? 'block' : 'none';
+    document.getElementById('matcap-section').style.display   = currentMatType === 'MeshMatcapMaterial'  ? 'block' : 'none';
+    document.getElementById('phong-section').style.display    = currentMatType === 'MeshPhongMaterial'   ? 'block' : 'none';
+    document.getElementById('pbrtoon-section').style.display  = currentMatType === 'PBRToon'             ? 'block' : 'none';
+    document.getElementById('palette-section').style.display  = currentMatType === 'PaletteShader'       ? 'block' : 'none';
+    // Toggle post-process pass
+    toonPass.enabled = currentMatType === 'PBRToon';
+    applyMaterial();
+  });
+});
+
+// Toggle + slider controls
+['use-texture','flat-shading','wireframe','double-side'].forEach(id => {
+  document.getElementById(id).addEventListener('change', applyMaterial);
+});
+
+document.getElementById('solid-color').addEventListener('input', applyMaterial);
+
+// Shininess
+const shininessEl = document.getElementById('shininess');
+shininessEl.addEventListener('input', () => {
+  document.getElementById('shininess-val').textContent = shininessEl.value;
+  applyMaterial();
+});
+
+// Lighting
+const ambientEl = document.getElementById('ambient-int');
+ambientEl.addEventListener('input', () => {
+  ambientLight.intensity = parseFloat(ambientEl.value);
+  document.getElementById('ambient-val').textContent = ambientEl.value;
+});
+
+const dirEl = document.getElementById('dir-int');
+dirEl.addEventListener('input', () => {
+  dirLight.intensity = parseFloat(dirEl.value);
+  document.getElementById('dir-val').textContent = dirEl.value;
+});
+
+document.getElementById('rim-light').addEventListener('change', e => {
+  rimLight.visible = e.target.checked;
+});
+
+document.getElementById('light-color').addEventListener('input', e => {
+  dirLight.color.set(e.target.value);
+});
+
+document.getElementById('auto-rotate').addEventListener('change', e => {
+  controls.autoRotate = e.target.checked;
+});
+
+// Background swatches
+document.querySelectorAll('.bg-swatch').forEach(s => {
+  s.addEventListener('click', () => {
+    document.querySelectorAll('.bg-swatch').forEach(b => b.classList.remove('active'));
+    s.classList.add('active');
+    scene.background = new THREE.Color(s.dataset.color);
+  });
+});
+
+// ─── PALETTE SHADER ──────────────────────────────────────────────────────────
+
+// Default ramps per part name — shadow / mid / highlight
+const defaultRamps = {
+  _default: [
+    [40,  40,  60],   // shadow   dark blue-grey
+    [120, 110, 130],  // mid      muted purple-grey
+    [220, 210, 240],  // highlight soft lavender white
+  ]
+};
+
+// Live ramp state: { meshName: [[r,g,b],[r,g,b],[r,g,b]...] }
+let paletteRamps = {};
+let paletteTexture = null;
+let paletteMeshOrder = []; // ordered list of mesh names → row index
+
+const paletteVertexShader = `
+  varying vec3 vWorldNormal;
+  void main() {
+    vWorldNormal = normalize(normalMatrix * normal);
+    gl_Position  = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const paletteFragmentShader = `
+  uniform sampler2D uPalette;
+  uniform float     uPaletteV;    // which row (0..1) = this part's color
+  uniform vec3      uLightDir;
+  uniform float     uSteps;
+  uniform float     uHardness;
+  varying vec3      vWorldNormal;
+
+  void main() {
+    float NdotL  = max(dot(normalize(vWorldNormal), normalize(uLightDir)), 0.0);
+
+    // Quantize
+    float hard   = floor(NdotL * uSteps + 0.5) / uSteps;
+    float tV     = mix(NdotL, hard, uHardness);
+    tV           = clamp(tV, 0.0, 1.0);
+
+    vec4 col     = texture2D(uPalette, vec2(tV, uPaletteV));
+    gl_FragColor = col;
+  }
+`;
+
+function buildPaletteTexture() {
+  const steps   = parseInt(document.getElementById('pal-steps').value);
+  const names   = paletteMeshOrder;
+  if (names.length === 0) return null;
+
+  const W = steps;
+  const H = names.length;
+  const data = new Uint8Array(W * H * 4);   // RGBA
+
+  names.forEach((name, row) => {
+    const ramp = paletteRamps[name] || defaultRamps._default;
+    for (let col = 0; col < W; col++) {
+      const t     = col / Math.max(W - 1, 1);
+      const stopT = t * (ramp.length - 1);
+      const lo    = Math.floor(stopT);
+      const hi    = Math.min(lo + 1, ramp.length - 1);
+      const f     = stopT - lo;
+      const r     = Math.round(ramp[lo][0] + (ramp[hi][0] - ramp[lo][0]) * f);
+      const g     = Math.round(ramp[lo][1] + (ramp[hi][1] - ramp[lo][1]) * f);
+      const b     = Math.round(ramp[lo][2] + (ramp[hi][2] - ramp[lo][2]) * f);
+      const idx   = (row * W + col) * 4;   // RGBA — 4 bytes
+      data[idx]   = r; data[idx+1] = g; data[idx+2] = b; data[idx+3] = 255;
+    }
+  });
+
+  if (paletteTexture) paletteTexture.dispose();
+  paletteTexture = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
+  paletteTexture.magFilter = THREE.NearestFilter;
+  paletteTexture.minFilter = THREE.NearestFilter;
+  paletteTexture.needsUpdate = true;
+  return paletteTexture;
+}
+
+function drawPalettePreview() {
+  const canvas = document.getElementById('pal-preview');
+  if (!canvas || paletteMeshOrder.length === 0) return;
+  const steps = parseInt(document.getElementById('pal-steps').value);
+  const W = Math.max(steps * 20, 200);
+  const H = Math.max(paletteMeshOrder.length * 13, 40);
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const rowH = H / paletteMeshOrder.length;
+
+  paletteMeshOrder.forEach((name, row) => {
+    const ramp = paletteRamps[name] || defaultRamps._default;
+    for (let col = 0; col < W; col++) {
+      const t  = col / (W - 1);
+      const stopT = t * (ramp.length - 1);
+      const lo = Math.floor(stopT);
+      const hi = Math.min(lo + 1, ramp.length - 1);
+      const f  = stopT - lo;
+      const r  = Math.round(ramp[lo][0] + (ramp[hi][0] - ramp[lo][0]) * f);
+      const g  = Math.round(ramp[lo][1] + (ramp[hi][1] - ramp[lo][1]) * f);
+      const b  = Math.round(ramp[lo][2] + (ramp[hi][2] - ramp[lo][2]) * f);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(col, row * rowH, 1, rowH);
+    }
+    // Label
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '9px monospace';
+    ctx.fillText(name, 4, row * rowH + rowH * 0.7);
+  });
+}
+
+function rgbToHex(rgb) {
+  return '#' + rgb.map(v => v.toString(16).padStart(2,'0')).join('');
+}
+function hexToRgbArr(hex) {
+  return [
+    parseInt(hex.slice(1,3),16),
+    parseInt(hex.slice(3,5),16),
+    parseInt(hex.slice(5,7),16),
+  ];
+}
+
+function buildPalettePartsEditor() {
+  const container = document.getElementById('pal-parts-editor');
+  container.innerHTML = '';
+
+  paletteMeshOrder.forEach(name => {
+    const ramp = paletteRamps[name] || defaultRamps._default;
+
+    const block = document.createElement('div');
+    block.style.cssText = 'margin-bottom:12px;padding:8px;background:var(--panel2);border-radius:6px;border:1px solid var(--border)';
+
+    // Name header
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:10px;color:var(--text);margin-bottom:6px;font-weight:700';
+    header.textContent = name;
+    block.appendChild(header);
+
+    // Color pickers per ramp stop
+    const labels = ['Shadow','Midtone','Highlight','Highlight 2','Highlight 3'];
+    ramp.forEach((stop, si) => {
+      const row = document.createElement('div');
+      row.className = 'control-row';
+      row.style.marginBottom = '4px';
+      row.innerHTML = `
+        <span class="control-label" style="width:60px">${labels[si] || 'Stop '+si}</span>
+        <input type="color" class="pal-stop-color" 
+          data-mesh="${name}" data-stop="${si}"
+          value="${rgbToHex(stop)}"
+          style="width:32px;height:24px;border:1px solid var(--border);border-radius:3px;background:none;cursor:pointer;padding:2px">
+        <div style="flex:1;height:16px;border-radius:3px;margin-left:6px" 
+          class="stop-swatch" data-mesh="${name}" data-stop="${si}"
+          style="background:${rgbToHex(stop)}"></div>
+      `;
+      block.appendChild(row);
+    });
+
+    // Add/remove stop buttons
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:4px;margin-top:6px';
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Stop';
+    addBtn.className = 'mat-btn';
+    addBtn.style.cssText = 'flex:1;font-size:9px;padding:4px';
+    addBtn.dataset.mesh = name;
+    addBtn.addEventListener('click', () => {
+      const r = paletteRamps[name];
+      const last = r[r.length-1];
+      r.push([
+        Math.min(last[0]+30,255),
+        Math.min(last[1]+30,255),
+        Math.min(last[2]+30,255),
+      ]);
+      refreshPalette();
+    });
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '- Stop';
+    delBtn.className = 'mat-btn';
+    delBtn.style.cssText = 'flex:1;font-size:9px;padding:4px';
+    delBtn.dataset.mesh = name;
+    delBtn.addEventListener('click', () => {
+      const r = paletteRamps[name];
+      if (r.length > 2) { r.pop(); refreshPalette(); }
+    });
+    btnRow.appendChild(addBtn);
+    btnRow.appendChild(delBtn);
+    block.appendChild(btnRow);
+
+    container.appendChild(block);
+  });
+
+  // Wire color pickers
+  container.querySelectorAll('.pal-stop-color').forEach(el => {
+    el.addEventListener('input', e => {
+      const mesh = e.target.dataset.mesh;
+      const si   = parseInt(e.target.dataset.stop);
+      paletteRamps[mesh][si] = hexToRgbArr(e.target.value);
+      refreshPalette();
+    });
+  });
+}
+
+function refreshPalette() {
+  buildPaletteTexture();
+  drawPalettePreview();
+  buildPalettePartsEditor();
+  // Update all palette materials' texture uniform
+  if (!currentModel) return;
+  currentModel.traverse(node => {
+    if (!node.isMesh) return;
+    if (node.material?.uniforms?.uPalette) {
+      node.material.uniforms.uPalette.value = paletteTexture;
+      node.material.uniforms.uPalette.value.needsUpdate = true;
+    }
+  });
+}
+
+function getPaletteV(meshName) {
+  const idx = paletteMeshOrder.indexOf(meshName);
+  if (idx < 0 || paletteMeshOrder.length <= 1) return 0.5;
+  return (idx + 0.5) / paletteMeshOrder.length;
+}
+
+function initPaletteForModel() {
+  // Build mesh order from current model
+  paletteMeshOrder = [];
+  if (!currentModel) return;
+  currentModel.traverse(node => {
+    if (node.isMesh) {
+      const name = node.name || ('mesh_' + paletteMeshOrder.length);
+      if (!paletteMeshOrder.includes(name)) paletteMeshOrder.push(name);
+    }
+  });
+
+  // Seed ramps with nice defaults per part name
+  const colorSeeds = {
+    blade:   [[30,35,50],[100,120,150],[200,220,255]],
+    handle:  [[40,20,10],[110,65,35],[190,140,90]],
+    gem:     [[0,35,40],[0,130,110],[80,240,200]],
+    guard:   [[60,50,30],[140,120,70],[210,195,140]],
+    pommel:  [[50,40,20],[130,110,60],[200,185,120]],
+  };
+
+  paletteMeshOrder.forEach(name => {
+    if (!paletteRamps[name]) {
+      // Match by substring
+      const matched = Object.keys(colorSeeds).find(k => name.toLowerCase().includes(k));
+      if (matched) {
+        paletteRamps[name] = colorSeeds[matched].map(c => [...c]);
+      } else {
+        // Random harmonious default
+        const hue = Math.random() * 360;
+        paletteRamps[name] = [
+          hslToRgb(hue, 0.4, 0.15),
+          hslToRgb(hue, 0.5, 0.45),
+          hslToRgb(hue, 0.3, 0.85),
+        ];
+      }
+    }
+  });
+
+  buildPaletteTexture();
+  buildPalettePartsEditor();
+  drawPalettePreview();
+}
+
+function hslToRgb(h, s, l) {
+  h /= 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const f = t => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q-p)*6*t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q-p)*(2/3-t)*6;
+    return p;
+  };
+  return [Math.round(f(h+1/3)*255), Math.round(f(h)*255), Math.round(f(h-1/3)*255)];
+}
+
+// Randomize — random harmonious hues
+document.getElementById('pal-randomize').addEventListener('click', () => {
+  paletteMeshOrder.forEach(name => {
+    const hue = Math.random() * 360;
+    paletteRamps[name] = [
+      hslToRgb(hue, 0.6, 0.12),
+      hslToRgb(hue, 0.55, 0.42),
+      hslToRgb(hue, 0.4, 0.82),
+    ];
+  });
+  refreshPalette();
+  if (currentMatType === 'PaletteShader') applyMaterial();
+});
+
+// Harmonize — all parts share same hue family, different saturation/lightness
+document.getElementById('pal-harmonize').addEventListener('click', () => {
+  const baseHue = Math.random() * 360;
+  const spread = 30;
+  paletteMeshOrder.forEach((name, i) => {
+    const hue = baseHue + (i / paletteMeshOrder.length) * spread;
+    paletteRamps[name] = [
+      hslToRgb(hue, 0.5, 0.12),
+      hslToRgb(hue, 0.6, 0.38),
+      hslToRgb(hue, 0.35, 0.80),
+    ];
+  });
+  refreshPalette();
+  if (currentMatType === 'PaletteShader') applyMaterial();
+});
+
+// Steps / hardness controls
+document.getElementById('pal-steps').addEventListener('input', e => {
+  document.getElementById('pal-steps-val').textContent = e.target.value;
+  buildPaletteTexture();
+  drawPalettePreview();
+  if (currentMatType === 'PaletteShader') applyMaterial();
+});
+document.getElementById('pal-hardness').addEventListener('input', e => {
+  document.getElementById('pal-hardness-val').textContent = parseFloat(e.target.value).toFixed(2);
+  if (currentMatType === 'PaletteShader') {
+    currentModel?.traverse(node => {
+      if (node.isMesh && node.material?.uniforms?.uHardness) {
+        node.material.uniforms.uHardness.value = parseFloat(e.target.value);
+      }
+    });
+  }
+});
+
+function getPaletteLightDir() {
+  const x = parseFloat(document.getElementById('pal-light-x').value);
+  const y = parseFloat(document.getElementById('pal-light-y').value);
+  return new THREE.Vector3(x, y, 0.5).normalize();
+}
+
+['pal-light-x','pal-light-y'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    document.getElementById(id + '-val').textContent = parseFloat(e.target.value).toFixed(2);
+    const dir = getPaletteLightDir();
+    currentModel?.traverse(node => {
+      if (node.isMesh && node.material?.uniforms?.uLightDir) {
+        node.material.uniforms.uLightDir.value.copy(dir);
+      }
+    });
+  });
+});
+
+// ─── EDGE TECHNIQUES ─────────────────────────────────────────────────────────
+
+// Track edge overlays per mesh uuid
+const edgeLines = new Map();   // uuid → LineSegments
+const hullMeshes = new Map();  // uuid → Mesh (inverted hull)
+
+function clearEdges() {
+  edgeLines.forEach(line => line.parent && line.parent.remove(line));
+  edgeLines.clear();
+}
+
+function clearHulls() {
+  hullMeshes.forEach(hull => hull.parent && hull.parent.remove(hull));
+  hullMeshes.clear();
+}
+
+// ── Edge gradient helpers ─────────────────────────────────────────────────────
+function hexToThreeColor(hex) {
+  return new THREE.Color(hex);
+}
+
+function applyEdgeGradient(edgesGeo, meshGeo) {
+  const useGradient = document.getElementById('edges-gradient').checked;
+  const opacity     = parseFloat(document.getElementById('edges-opacity').value);
+  const posAttr     = edgesGeo.attributes.position;
+  const count       = posAttr.count;
+  const colors      = new Float32Array(count * 3);
+
+  if (!useGradient) {
+    const c = hexToThreeColor(document.getElementById('edges-color').value);
+    for (let i = 0; i < count; i++) {
+      colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+    }
+  } else {
+    const top      = hexToThreeColor(document.getElementById('edges-grad-top').value);
+    const bot      = hexToThreeColor(document.getElementById('edges-grad-bot').value);
+    const dir      = document.getElementById('edges-grad-dir').value;
+    const contrast = parseFloat(document.getElementById('edges-grad-contrast').value);
+
+    // Compute bounding box of edge geometry for normalization
+    edgesGeo.computeBoundingBox();
+    const bbox = edgesGeo.boundingBox;
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+    const size = new THREE.Vector3();
+    bbox.getSize(size);
+
+    for (let i = 0; i < count; i++) {
+      const x = posAttr.getX(i);
+      const y = posAttr.getY(i);
+      const z = posAttr.getZ(i);
+
+      let t = 0;
+      if (dir === 'y') {
+        t = size.y > 0 ? (y - bbox.min.y) / size.y : 0.5;
+      } else if (dir === 'x') {
+        t = size.x > 0 ? (x - bbox.min.x) / size.x : 0.5;
+      } else if (dir === 'radial') {
+        const dx = x - center.x;
+        const dy = y - center.y;
+        const dz = z - center.z;
+        const maxR = Math.max(size.x, size.y, size.z) * 0.5;
+        t = maxR > 0 ? Math.min(Math.sqrt(dx*dx + dy*dy + dz*dz) / maxR, 1) : 0;
+      } else if (dir === 'angle') {
+        const dx = x - center.x;
+        const dy = y - center.y;
+        t = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI);
+      }
+
+      // Apply contrast
+      t = Math.pow(Math.max(0, Math.min(1, t)), contrast);
+
+      colors[i*3]   = bot.r + (top.r - bot.r) * t;
+      colors[i*3+1] = bot.g + (top.g - bot.g) * t;
+      colors[i*3+2] = bot.b + (top.b - bot.b) * t;
+    }
+  }
+
+  edgesGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return colors;
+}
+
+function buildEdgeLines() {
+  clearEdges();
+  if (!currentModel) return;
+  const opacity   = parseFloat(document.getElementById('edges-opacity').value);
+  const threshold = parseFloat(document.getElementById('edges-threshold').value);
+  const useGrad   = document.getElementById('edges-gradient').checked;
+
+  currentModel.traverse(node => {
+    if (!node.isMesh) return;
+    const edges = new THREE.EdgesGeometry(node.geometry, threshold);
+
+    // Apply vertex colors
+    applyEdgeGradient(edges, node.geometry);
+
+    const mat = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: opacity < 1,
+      opacity,
+    });
+    const line = new THREE.LineSegments(edges, mat);
+    node.add(line);
+    edgeLines.set(node.uuid, line);
+  });
+}
+
+// ── Smooth normal computation ─────────────────────────────────────────────────
+// Averages face normals per unique vertex position so corners close cleanly
+function computeSmoothNormals(geometry) {
+  const pos = geometry.attributes.position;
+  const smoothNormals = new Float32Array(pos.count * 3);
+  const vA = new THREE.Vector3();
+  const vB = new THREE.Vector3();
+  const vC = new THREE.Vector3();
+  const faceNorm = new THREE.Vector3();
+  const posMap = new Map(); // position key → { normal, indices[] }
+
+  const index = geometry.index;
+  const triCount = index ? index.count : pos.count;
+
+  for (let i = 0; i < triCount; i += 3) {
+    const a = index ? index.getX(i)   : i;
+    const b = index ? index.getX(i+1) : i+1;
+    const c = index ? index.getX(i+2) : i+2;
+
+    vA.fromBufferAttribute(pos, a);
+    vB.fromBufferAttribute(pos, b);
+    vC.fromBufferAttribute(pos, c);
+
+    faceNorm.crossVectors(
+      new THREE.Vector3().subVectors(vB, vA),
+      new THREE.Vector3().subVectors(vC, vA)
+    ).normalize();
+
+    [a, b, c].forEach(idx => {
+      const v = new THREE.Vector3().fromBufferAttribute(pos, idx);
+      const key = `${v.x.toFixed(5)},${v.y.toFixed(5)},${v.z.toFixed(5)}`;
+      if (!posMap.has(key)) posMap.set(key, { normal: new THREE.Vector3(), indices: [] });
+      const entry = posMap.get(key);
+      entry.normal.add(faceNorm);
+      entry.indices.push(idx);
+    });
+  }
+
+  posMap.forEach(entry => {
+    entry.normal.normalize();
+    entry.indices.forEach(idx => {
+      smoothNormals[idx * 3]     = entry.normal.x;
+      smoothNormals[idx * 3 + 1] = entry.normal.y;
+      smoothNormals[idx * 3 + 2] = entry.normal.z;
+    });
+  });
+
+  geometry.setAttribute('smoothNormal', new THREE.BufferAttribute(smoothNormals, 3));
+}
+
+// ── Hull shaders — two variants toggled by uniform ────────────────────────────
+const hullVertexShader = `
+  attribute vec3 smoothNormal;
+  uniform float uThickness;
+  uniform bool  uUseSmooth;
+  void main() {
+    vec3 n = uUseSmooth ? smoothNormal : normal;
+    vec3 norm = normalize(normalMatrix * n);
+    vec4 pos  = modelViewMatrix * vec4(position, 1.0);
+    pos.xyz  += norm * uThickness * 0.01;
+    gl_Position = projectionMatrix * pos;
+  }
+`;
+const hullFragmentShader = `
+  uniform vec3  uColor;
+  uniform float uOpacity;
+  void main() {
+    gl_FragColor = vec4(uColor, uOpacity);
+  }
+`;
+
+function buildHulls() {
+  clearHulls();
+  if (!currentModel) return;
+  const color      = new THREE.Color(document.getElementById('hull-color').value);
+  const opacity    = parseFloat(document.getElementById('hull-opacity').value);
+  const thickness  = parseFloat(document.getElementById('hull-thickness').value);
+  const useSmooth  = document.getElementById('hull-smooth-normals').checked;
+
+  currentModel.traverse(node => {
+    if (!node.isMesh) return;
+
+    // Compute smooth normals on first use (cached on geometry)
+    if (!node.geometry.attributes.smoothNormal) {
+      computeSmoothNormals(node.geometry);
+    }
+
+    const hullMat = new THREE.ShaderMaterial({
+      vertexShader:   hullVertexShader,
+      fragmentShader: hullFragmentShader,
+      uniforms: {
+        uThickness:  { value: thickness },
+        uColor:      { value: color.clone() },
+        uOpacity:    { value: opacity },
+        uUseSmooth:  { value: useSmooth },
+      },
+      side: THREE.BackSide,
+      transparent: opacity < 1,
+    });
+
+    const hull = new THREE.Mesh(node.geometry, hullMat);
+    hull.renderOrder = -1;
+    node.add(hull);
+    hullMeshes.set(node.uuid, hull);
+  });
+}
+
+function updateEdgeLines() {
+  // Rebuild geometry-level vertex colors
+  if (!currentModel) return;
+  const opacity = parseFloat(document.getElementById('edges-opacity').value);
+
+  currentModel.traverse(node => {
+    if (!node.isMesh) return;
+    const line = edgeLines.get(node.uuid);
+    if (!line) return;
+    applyEdgeGradient(line.geometry, node.geometry);
+    line.geometry.attributes.color.needsUpdate = true;
+    line.material.opacity = opacity;
+    line.material.transparent = opacity < 1;
+    line.material.needsUpdate = true;
+  });
+}
+
+function updateHulls() {
+  const color     = new THREE.Color(document.getElementById('hull-color').value);
+  const opacity   = parseFloat(document.getElementById('hull-opacity').value);
+  const thickness = parseFloat(document.getElementById('hull-thickness').value);
+  const useSmooth = document.getElementById('hull-smooth-normals').checked;
+  hullMeshes.forEach((hull) => {
+    hull.material.uniforms.uThickness.value = thickness;
+    hull.material.uniforms.uColor.value.copy(color);
+    hull.material.uniforms.uOpacity.value   = opacity;
+    hull.material.uniforms.uUseSmooth.value = useSmooth;
+    hull.material.transparent = opacity < 1;
+    hull.material.needsUpdate = true;
+  });
+}
+
+// EdgesGeometry toggle
+document.getElementById('edges-geo').addEventListener('change', e => {
+  const opts = document.getElementById('edges-geo-opts');
+  opts.style.display = e.target.checked ? 'block' : 'none';
+  if (e.target.checked) buildEdgeLines();
+  else clearEdges();
+});
+
+// Edges threshold — rebuild geometry on change
+document.getElementById('edges-threshold').addEventListener('input', e => {
+  document.getElementById('edges-threshold-val').textContent = e.target.value;
+  if (document.getElementById('edges-geo').checked) buildEdgeLines();
+});
+
+// Gradient toggle
+document.getElementById('edges-gradient').addEventListener('change', e => {
+  const on = e.target.checked;
+  document.getElementById('edges-flat-color').style.display  = on ? 'none'  : 'flex';
+  document.getElementById('edges-gradient-opts').style.display = on ? 'block' : 'none';
+  if (document.getElementById('edges-geo').checked) updateEdgeLines();
+});
+
+// Flat color
+document.getElementById('edges-color').addEventListener('input', () => {
+  if (document.getElementById('edges-geo').checked) updateEdgeLines();
+});
+
+// Gradient pickers + controls
+['edges-grad-top','edges-grad-bot'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (document.getElementById('edges-geo').checked) updateEdgeLines();
+  });
+});
+
+document.getElementById('edges-grad-dir').addEventListener('change', () => {
+  if (document.getElementById('edges-geo').checked) updateEdgeLines();
+});
+
+document.getElementById('edges-grad-contrast').addEventListener('input', e => {
+  document.getElementById('edges-grad-contrast-val').textContent = parseFloat(e.target.value).toFixed(1);
+  if (document.getElementById('edges-geo').checked) updateEdgeLines();
+});
+
+document.getElementById('edges-opacity').addEventListener('input', e => {
+  document.getElementById('edges-opacity-val').textContent = parseFloat(e.target.value).toFixed(2);
+  if (document.getElementById('edges-geo').checked) updateEdgeLines();
+});
+
+// Inverted Hull toggle
+document.getElementById('inv-hull').addEventListener('change', e => {
+  const opts = document.getElementById('inv-hull-opts');
+  opts.style.display = e.target.checked ? 'block' : 'none';
+  if (e.target.checked) buildHulls();
+  else clearHulls();
+});
+
+document.getElementById('hull-thickness').addEventListener('input', e => {
+  document.getElementById('hull-thickness-val').textContent = parseFloat(e.target.value).toFixed(1);
+  if (document.getElementById('inv-hull').checked) updateHulls();
+});
+
+document.getElementById('hull-smooth-normals').addEventListener('change', () => {
+  // Rebuild hulls — shader needs to re-link the smoothNormal attribute
+  if (document.getElementById('inv-hull').checked) buildHulls();
+});
+
+document.getElementById('hull-color').addEventListener('input', () => {
+  if (document.getElementById('inv-hull').checked) updateHulls();
+});
+
+document.getElementById('hull-opacity').addEventListener('input', e => {
+  document.getElementById('hull-opacity-val').textContent = parseFloat(e.target.value).toFixed(2);
+  if (document.getElementById('inv-hull').checked) updateHulls();
+});
+
+// Rebuild edges/hulls when a new model loads — hook into loadGLB
+const _origBuildBoard = window._afterModelLoad;
+window._afterModelLoad = () => {
+  if (document.getElementById('edges-geo').checked) buildEdgeLines();
+  if (document.getElementById('inv-hull').checked) buildHulls();
+};
+
+// ─── RESIZE ───────────────────────────────────────────────────────────────────
+function resize() {
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─── RENDER LOOP ─────────────────────────────────────────────────────────────
+function updatePBRToonPass() {
+  const steps = parseFloat(document.getElementById('pbr-steps').value);
+  const sat   = parseFloat(document.getElementById('pbr-saturation').value);
+  const useTones = document.getElementById('pbr-use-tones').checked;
+  toonPass.uniforms.uSteps.value      = steps;
+  toonPass.uniforms.uSaturation.value = sat;
+  toonPass.uniforms.uUseTones.value   = useTones;
+  toonPass.uniforms.uShadowTone.value.set(document.getElementById('pbr-shadow').value);
+  toonPass.uniforms.uMidTone.value.set(document.getElementById('pbr-mid').value);
+  toonPass.uniforms.uHighTone.value.set(document.getElementById('pbr-highlight').value);
+}
+
+// PBRToon controls
+document.getElementById('pbr-steps').addEventListener('input', e => {
+  document.getElementById('pbr-steps-val').textContent = e.target.value;
+  updatePBRToonPass();
+});
+document.getElementById('pbr-saturation').addEventListener('input', e => {
+  document.getElementById('pbr-saturation-val').textContent = parseFloat(e.target.value).toFixed(2);
+  updatePBRToonPass();
+});
+document.getElementById('pbr-use-tones').addEventListener('change', e => {
+  document.getElementById('pbr-tone-picks').style.display = e.target.checked ? 'block' : 'none';
+  updatePBRToonPass();
+});
+['pbr-shadow','pbr-mid','pbr-highlight'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePBRToonPass);
+});
+
+// ToonPlus normal scale
+document.getElementById('toonplus-normalscale').addEventListener('input', e => {
+  document.getElementById('toonplus-normalscale-val').textContent = parseFloat(e.target.value).toFixed(2);
+  applyMaterial();
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  if (toonPass.enabled) {
+    composer.render();
+  } else {
+    renderer.render(scene, camera);
+  }
+}
+animate();
+</script>
+</body>
+</html>
