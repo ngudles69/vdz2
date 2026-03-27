@@ -37,6 +37,20 @@
       --vd-error: #fc5c5c;
     }
 
+    body.light-theme {
+      --vd-bg: #f0f0f2;
+      --vd-surface: #ffffff;
+      --vd-surface-2: #e8e8ee;
+      --vd-border: #d0d0d8;
+      --vd-accent: #6b4ce6;
+      --vd-accent-glow: rgba(107, 76, 230, 0.25);
+      --vd-text: rgba(0, 0, 0, 0.85);
+      --vd-text-dim: rgba(0, 0, 0, 0.55);
+      --vd-text-muted: rgba(0, 0, 0, 0.30);
+      --vd-canvas-bg: #e4e4ec;
+      --vd-dot: rgba(0, 0, 0, 0.06);
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -71,7 +85,7 @@
     /* --- Header --- */
 
     .app-header {
-      height: 48px;
+      height: 56px;
       background: var(--vd-surface);
       border-bottom: 1px solid var(--vd-border);
       display: flex;
@@ -83,7 +97,7 @@
     }
 
     .app-logo {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 300;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -102,13 +116,13 @@
       background: none;
       border: none;
       color: var(--vd-text-dim);
-      font-size: 22px;
+      font-size: 24px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 6px;
       transition: color 0.15s;
       padding: 0;
@@ -125,6 +139,91 @@
     .icon-btn:disabled {
       color: var(--vd-text-muted);
       cursor: default;
+    }
+
+    /* --- Avatar button --- */
+
+    .avatar-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--vd-border);
+      background: var(--vd-surface-2);
+      color: var(--vd-text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: border-color 0.15s;
+      padding: 0;
+    }
+
+    .avatar-btn:hover {
+      border-color: var(--vd-accent);
+    }
+
+    /* --- Toolbar --- */
+
+    .toolbar {
+      height: 42px;
+      background: transparent;
+      border-bottom: none;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      position: relative;
+      z-index: 10;
+      gap: 2px;
+      flex-shrink: 0;
+      z-index: 9;
+    }
+
+    .toolbar-btn {
+      background: none;
+      border: none;
+      color: var(--vd-text-dim);
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+      padding: 0;
+    }
+
+    .toolbar-btn:hover:not(:disabled) {
+      color: var(--vd-text);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .toolbar-btn:active:not(:disabled) {
+      color: var(--vd-accent);
+    }
+
+    .toolbar-btn:disabled {
+      color: var(--vd-text-muted);
+      cursor: default;
+    }
+
+    .toolbar-btn.active {
+      color: var(--vd-bg);
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .toolbar-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--vd-border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .toolbar-spacer {
+      flex: 1;
     }
 
     /* --- Canvas --- */
@@ -299,7 +398,7 @@
     .layer-panel {
       position: fixed;
       bottom: 56px;
-      right: 16px;
+      right: 20px;
       background: var(--vd-surface);
       border: 1px solid var(--vd-border);
       border-radius: 8px;
@@ -530,17 +629,41 @@
     <header class="app-header">
       <span class="app-logo">Violet Drizzle</span>
       <div class="app-actions">
-        <button id="btn-undo" class="icon-btn" title="Undo (Ctrl+Z)" disabled>
-          <span class="material-symbols-rounded">undo</span>
+        <button id="btn-theme-toggle" class="icon-btn" title="Toggle light/dark mode">
+          <span class="material-symbols-rounded">light_mode</span>
         </button>
-        <button id="btn-redo" class="icon-btn" title="Redo (Ctrl+Shift+Z)" disabled>
-          <span class="material-symbols-rounded">redo</span>
-        </button>
-        <button id="btn-settings" class="icon-btn" title="Settings">
-          <span class="material-symbols-rounded">settings</span>
+        <button id="btn-avatar" class="avatar-btn" title="Account">
+          <span class="material-symbols-rounded">person</span>
         </button>
       </div>
     </header>
+
+    <div class="toolbar">
+      <button id="btn-undo" class="toolbar-btn" title="Undo (Ctrl+Z)" disabled>
+        <span class="material-symbols-rounded">undo</span>
+      </button>
+      <button id="btn-redo" class="toolbar-btn" title="Redo (Ctrl+Shift+Z)" disabled>
+        <span class="material-symbols-rounded">redo</span>
+      </button>
+      <span class="toolbar-sep"></span>
+      <button id="btn-save" class="toolbar-btn" title="Save project">
+        <span class="material-symbols-rounded">save</span>
+      </button>
+      <button id="btn-load" class="toolbar-btn" title="Open project">
+        <span class="material-symbols-rounded">folder_open</span>
+      </button>
+      <span class="toolbar-spacer"></span>
+      <button id="btn-grid-toggle" class="toolbar-btn" title="Toggle grid">
+        <span class="material-symbols-rounded">grid_on</span>
+      </button>
+      <button id="btn-ruler-toggle" class="toolbar-btn" title="Toggle rulers">
+        <span class="material-symbols-rounded">straighten</span>
+      </button>
+      <span class="toolbar-sep"></span>
+      <button id="btn-settings" class="toolbar-btn" title="Settings">
+        <span class="material-symbols-rounded">settings</span>
+      </button>
+    </div>
 
     <div id="canvas-container">
       <canvas id="ruler-top" class="ruler ruler-top"></canvas>
@@ -573,7 +696,13 @@
     </div>
 
     <!-- Layers button -->
-    <button id="btn-layers" class="icon-btn" title="Layers" style="position:fixed;bottom:16px;right:16px;z-index:100;">
+    <!-- Stitch picker toggle (bottom-left) -->
+    <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:fixed;bottom:16px;left:28px;z-index:100;font-size:28px;width:40px;height:40px;">
+      <span class="material-symbols-rounded">draw</span>
+    </button>
+
+    <!-- Layers toggle (bottom-right) -->
+    <button id="btn-layers" class="icon-btn" title="Layers" style="position:fixed;bottom:16px;right:20px;z-index:100;font-size:28px;width:40px;height:40px;">
       <span class="material-symbols-rounded">layers</span>
     </button>
 

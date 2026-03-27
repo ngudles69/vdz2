@@ -99,18 +99,17 @@ class StitchPicker {
     style.id = 'stitch-picker-styles';
     style.textContent = `
       .stitch-picker {
-        position: absolute;
+        position: fixed;
         left: 28px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(19, 19, 26, 0.92);
+        bottom: 56px;
+        background: var(--vd-surface);
         border: 1px solid var(--vd-border);
         border-radius: 8px;
-        z-index: 5;
+        z-index: 99;
         pointer-events: auto;
         display: none;
         flex-direction: column;
-        max-height: calc(100% - 24px);
+        max-height: calc(100vh - 80px);
         min-width: 190px;
         max-width: 250px;
         font-family: 'Jost', sans-serif;
@@ -296,7 +295,7 @@ class StitchPicker {
   // ---- DOM ----
 
   #buildDOM() {
-    const container = document.getElementById('canvas-container');
+    const container = document.body;
     if (!container) return;
 
     this.#el = document.createElement('div');

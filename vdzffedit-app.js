@@ -274,7 +274,132 @@ keyboard.register({ key: 'ArrowDown', label: 'Nudge down', category: 'edit', whe
 keyboard.register({ key: 'ArrowLeft', label: 'Nudge left', category: 'edit', when: () => selectionManager.hasSelection, action: () => nudge(-1, 0) });
 keyboard.register({ key: 'ArrowRight', label: 'Nudge right', category: 'edit', when: () => selectionManager.hasSelection, action: () => nudge(1, 0) });
 
+// --- Save / Load ---
+async function saveProject() {
+  const project = {
+    version: 1,
+    stamps: stitchStore.exportJSON(),
+    layers: layerManager.saveState(),
+    grid: {
+      visible: viewport.gridVisible,
+      spacing: viewport.gridSpacing,
+      opacity: viewport.gridOpacity,
+    },
+    background: viewport.backgroundType,
+  };
+  const json = JSON.stringify(project, null, 2);
+
+  // Use File System Access API if available (shows save dialog)
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'violet-drizzle-project.json',
+        types: [{ description: 'JSON File', accept: { 'application/json': ['.json'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      toast('Project saved');
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // user cancelled
+      console.warn('File System API failed, falling back:', err);
+    }
+  }
+
+  // Fallback: direct download
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'violet-drizzle-project.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Project saved');
+}
+
+function loadProject() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const project = JSON.parse(reader.result);
+        if (!project.version || !project.stamps) {
+          toast('Invalid project file');
+          return;
+        }
+        // Clear current state
+        selectionManager.deselectAll();
+        history.clear();
+
+        // Restore stamps
+        stitchStore.importJSON(project.stamps);
+
+        // Restore layers
+        if (project.layers) layerManager.loadState(project.layers);
+
+        // Restore grid
+        if (project.grid) {
+          viewport.setGridVisible(project.grid.visible ?? false);
+          viewport.setGridSize(project.grid.spacing ?? 20);
+          viewport.setGridOpacity(project.grid.opacity ?? 0.15);
+          document.getElementById('setting-grid').checked = project.grid.visible ?? false;
+          document.getElementById('setting-grid-size').value = project.grid.spacing ?? 20;
+          document.getElementById('setting-grid-opacity').value = Math.round((project.grid.opacity ?? 0.15) * 100);
+        }
+
+        // Restore background
+        if (project.background) viewport.setBackground(project.background);
+
+        toast('Project loaded');
+      } catch (err) {
+        console.error('Failed to load project:', err);
+        toast('Failed to load project');
+      }
+    };
+    reader.readAsText(file);
+  });
+  input.click();
+}
+
+keyboard.register({ key: 'Ctrl+S', label: 'Save project', category: 'file', action: () => saveProject() });
+keyboard.register({ key: 'Ctrl+O', label: 'Open project', category: 'file', action: () => loadProject() });
+
+// --- Toolbar buttons ---
+document.getElementById('btn-save').addEventListener('click', () => saveProject());
+document.getElementById('btn-load').addEventListener('click', () => loadProject());
+
+const btnGridToggle = document.getElementById('btn-grid-toggle');
+const btnRulerToggle = document.getElementById('btn-ruler-toggle');
+
+btnGridToggle.addEventListener('click', () => {
+  const on = !viewport.gridVisible;
+  viewport.setGridVisible(on);
+  btnGridToggle.classList.toggle('active', on);
+  document.getElementById('setting-grid').checked = on;
+});
+
+btnRulerToggle.addEventListener('click', () => {
+  const on = !viewport.rulerVisible;
+  viewport.setRulerVisible(on);
+  btnRulerToggle.classList.toggle('active', on);
+  document.getElementById('setting-ruler').checked = on;
+});
+
+// --- Theme toggle ---
+const btnTheme = document.getElementById('btn-theme-toggle');
+btnTheme.addEventListener('click', () => {
+  const isLight = document.body.classList.toggle('light-theme');
+  btnTheme.querySelector('.material-symbols-rounded').textContent = isLight ? 'dark_mode' : 'light_mode';
+});
+
 // --- Panels ---
+document.getElementById('btn-stitch-toggle').addEventListener('click', () => stitchPicker.toggle());
 keyboard.register({ key: 'S', label: 'Toggle stitch picker', category: 'panels', action: () => stitchPicker.toggle() });
 
 // ============================================================
