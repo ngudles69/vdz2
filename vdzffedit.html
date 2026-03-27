@@ -316,6 +316,121 @@
       overflow: hidden;
     }
 
+    /* --- Video Zone --- */
+
+    .video-zone {
+      flex-shrink: 0;
+      background: var(--vd-surface, #13131a);
+      border-top: 1px solid var(--vd-border, #2a2a38);
+      display: flex;
+      flex-direction: column;
+      transition: height 0.3s ease;
+      overflow: hidden;
+    }
+    .video-zone.collapsed {
+      height: 42px;
+    }
+    .video-zone.expanded {
+      height: 140px;
+    }
+
+    .video-zone-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .video-zone-empty button {
+      background: var(--vd-surface-2, #1e1e2a);
+      border: 1px dashed var(--vd-border, #2a2a38);
+      border-radius: 6px;
+      color: var(--vd-text-dim);
+      font-family: Jost, sans-serif;
+      font-size: 13px;
+      padding: 6px 18px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .video-zone-empty button:hover {
+      border-color: var(--vd-accent);
+      color: var(--vd-text);
+    }
+
+    .video-controls {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 4px 12px;
+      height: 34px;
+      flex-shrink: 0;
+    }
+    .video-controls .vc-btn {
+      background: none;
+      border: none;
+      color: var(--vd-text-dim);
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      font-size: 18px;
+      padding: 0;
+      transition: color 0.1s;
+    }
+    .video-controls .vc-btn:hover { color: var(--vd-text); }
+    .video-controls .vc-btn.vc-play { font-size: 22px; }
+    .video-controls .vc-time {
+      font-family: 'Jost', monospace;
+      font-size: 12px;
+      color: var(--vd-text-dim);
+      margin: 0 8px;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+    .video-controls .vc-spacer { flex: 1; }
+    .video-controls .vc-name {
+      font-size: 11px;
+      color: var(--vd-text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 200px;
+    }
+
+    .video-scrubber {
+      flex-shrink: 0;
+      height: 24px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+    }
+    .video-scrubber input[type="range"] {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--vd-border);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .video-scrubber input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--vd-text);
+      cursor: pointer;
+    }
+
+    .video-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 12px;
+    }
+
     .ruler {
       position: absolute;
       z-index: 10;
@@ -795,6 +910,49 @@
       </div>
       <div id="box-select-rect"></div>
     </div>
+
+    <!-- Video zone -->
+    <div id="video-zone" class="video-zone collapsed">
+      <!-- Empty state: just the load button -->
+      <div id="video-zone-empty" class="video-zone-empty">
+        <button id="btn-load-video">
+          <span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle;margin-right:4px;">movie</span>
+          Load Video
+        </button>
+      </div>
+
+      <!-- Active state: controls + scrubber + content (hidden until video loaded) -->
+      <div id="video-zone-active" style="display:none;flex-direction:column;height:100%;">
+        <!-- Transport controls -->
+        <div class="video-controls">
+          <button class="vc-btn" id="vc-start" title="Go to start"><span class="material-symbols-rounded">first_page</span></button>
+          <button class="vc-btn" id="vc-back5" title="Back 5s"><span class="material-symbols-rounded">fast_rewind</span></button>
+          <button class="vc-btn" id="vc-back1" title="Back 1 frame"><span class="material-symbols-rounded">skip_previous</span></button>
+          <button class="vc-btn vc-play" id="vc-play" title="Play/Pause"><span class="material-symbols-rounded">play_arrow</span></button>
+          <button class="vc-btn" id="vc-stop" title="Stop"><span class="material-symbols-rounded">stop</span></button>
+          <button class="vc-btn" id="vc-fwd1" title="Forward 1 frame"><span class="material-symbols-rounded">skip_next</span></button>
+          <button class="vc-btn" id="vc-fwd5" title="Forward 5s"><span class="material-symbols-rounded">fast_forward</span></button>
+          <button class="vc-btn" id="vc-end" title="Go to end"><span class="material-symbols-rounded">last_page</span></button>
+          <span class="vc-time" id="vc-time">00:00.00 / 00:00.00</span>
+          <button class="vc-btn" id="vc-bookmark" title="Add bookmark (B)"><span class="material-symbols-rounded">bookmark_add</span></button>
+          <span class="vc-spacer"></span>
+          <span class="vc-name" id="vc-name"></span>
+          <button class="vc-btn" id="vc-unload" title="Unload video"><span class="material-symbols-rounded">close</span></button>
+        </div>
+
+        <!-- Scrubber -->
+        <div class="video-scrubber">
+          <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
+        </div>
+
+        <!-- Content area (for sections table later) -->
+        <div class="video-content" id="video-content">
+        </div>
+      </div>
+    </div>
+
+    <!-- Video file input (hidden) -->
+    <input type="file" id="video-upload" accept="video/mp4,video/webm,video/mov" style="display:none">
 
     <!-- Image upload (hidden file input) -->
     <input type="file" id="image-upload" accept="image/jpeg,image/png,image/gif" style="display:none">

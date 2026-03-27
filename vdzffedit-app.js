@@ -21,6 +21,7 @@ import { SelectTool } from './ui/tools/SelectTool.js';
 import { StampTool } from './ui/tools/StampTool.js';
 import { TextTool } from './ui/tools/TextTool.js';
 import { AlignPanel } from './ui/AlignPanel.js';
+import { VideoZone } from './ui/VideoZone.js';
 import { TextToolbar } from './ui/TextToolbar.js';
 import { KeyboardManager } from './ui/KeyboardManager.js';
 import {
@@ -723,13 +724,22 @@ state.watch('stitchScale', saveSettings);
 // Init
 // ============================================================
 
+// ============================================================
+// Video zone
+// ============================================================
+
+const videoZone = new VideoZone(bus, state);
+
+// B key = add bookmark
+keyboard.register({ key: 'B', label: 'Add bookmark', category: 'video', action: () => videoZone.addBookmark() });
+
 toast('Freeform editor ready');
 
 window.__vdz = {
   bus, state, history, viewport, layerManager, imageOverlay,
   stitchLibrary, stitchAtlas, stitchPicker,
   stitchStore, stitchRenderer, selectionManager, transformControls,
-  toolManager, keyboard, setManager, textToolbar,
+  toolManager, keyboard, setManager, textToolbar, videoZone,
 };
 
 console.log('[VDZ] Freeform editor initialized');
