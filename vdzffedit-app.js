@@ -73,6 +73,7 @@ const selectionManager = new SelectionManager(bus);
 const stitchRenderer = new StitchRenderer(bus, stitchStore, stitchLibrary, stitchAtlas, layerManager);
 const transformControls = new TransformControls(bus, viewport.scene, viewport.camera);
 const stitchTarget = new StitchTransformTarget(stitchStore, selectionManager);
+stitchTarget.setRenderer(stitchRenderer);
 const imageTarget = new ImageTransformTarget(imageOverlay);
 
 const setManager = new SetManager(bus, stitchStore);

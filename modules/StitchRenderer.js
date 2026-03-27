@@ -553,6 +553,26 @@ class StitchRenderer {
   /** @returns {number} Symbol size in world units */
   get symbolSize() { return this.#symbolSize; }
 
+  /**
+   * Get the world-space half-extents of a stamp for bounds computation.
+   * For stitches: fixed symbolSize/2. For text: actual text dimensions.
+   * @param {string} id
+   * @returns {{ hw: number, hh: number }} half-width, half-height
+   */
+  getStampExtents(id) {
+    const s = this.#store.getById(id);
+    if (!s) return { hw: this.#symbolSize / 2, hh: this.#symbolSize / 2 };
+
+    const sc = s.scale ?? 1;
+    if (s.type === 'text') {
+      const mesh = this.#textMeshes.get(id);
+      if (mesh) {
+        return { hw: (mesh.userData._worldW * sc) / 2, hh: (mesh.userData._worldH * sc) / 2 };
+      }
+    }
+    return { hw: (this.#symbolSize * sc) / 2, hh: (this.#symbolSize * sc) / 2 };
+  }
+
   /** Update the selection box color. */
   setSelectionColor(color) {
     if (this.#selBoxMat) this.#selBoxMat.color.set(color);

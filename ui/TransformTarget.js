@@ -33,6 +33,7 @@ class StitchTransformTarget {
 
   #store;
   #selectionManager;
+  #renderer = null;
 
   // Snapshots taken at drag start
   #startPositions = new Map();  // id → {x, y}
@@ -44,6 +45,9 @@ class StitchTransformTarget {
     this.#selectionManager = selectionManager;
   }
 
+  /** Set renderer reference for querying text mesh dimensions */
+  setRenderer(renderer) { this.#renderer = renderer; }
+
   /** @returns {TransformBounds|null} */
   getBounds() {
     const ids = this.#selectionManager.selectedArray;
@@ -54,13 +58,16 @@ class StitchTransformTarget {
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const s of stamps) {
-      if (s.position.x < minX) minX = s.position.x;
-      if (s.position.y < minY) minY = s.position.y;
-      if (s.position.x > maxX) maxX = s.position.x;
-      if (s.position.y > maxY) maxY = s.position.y;
+      const ext = this.#renderer
+        ? this.#renderer.getStampExtents(s.id)
+        : { hw: 14, hh: 14 };
+      if (s.position.x - ext.hw < minX) minX = s.position.x - ext.hw;
+      if (s.position.y - ext.hh < minY) minY = s.position.y - ext.hh;
+      if (s.position.x + ext.hw > maxX) maxX = s.position.x + ext.hw;
+      if (s.position.y + ext.hh > maxY) maxY = s.position.y + ext.hh;
     }
 
-    const pad = 14;
+    const pad = 4;
     return { minX: minX - pad, minY: minY - pad, maxX: maxX + pad, maxY: maxY + pad };
   }
 
@@ -86,17 +93,20 @@ class StitchTransformTarget {
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const s of stamps) {
+      const ext = this.#renderer
+        ? this.#renderer.getStampExtents(s.id)
+        : { hw: 14, hh: 14 };
       const dx = s.position.x - wcx;
       const dy = s.position.y - wcy;
       const lx = wcx + dx * cos - dy * sin;
       const ly = wcy + dx * sin + dy * cos;
-      if (lx < minX) minX = lx;
-      if (ly < minY) minY = ly;
-      if (lx > maxX) maxX = lx;
-      if (ly > maxY) maxY = ly;
+      if (lx - ext.hw < minX) minX = lx - ext.hw;
+      if (ly - ext.hh < minY) minY = ly - ext.hh;
+      if (lx + ext.hw > maxX) maxX = lx + ext.hw;
+      if (ly + ext.hh > maxY) maxY = ly + ext.hh;
     }
 
-    const pad = 14;
+    const pad = 4;
     return { minX: minX - pad, minY: minY - pad, maxX: maxX + pad, maxY: maxY + pad };
   }
 
