@@ -63,9 +63,11 @@ All feature work follows the ExecPlan format defined in `.planning/EXECPLAN.md`.
 Before writing code, read in this order:
 
 1. This file — project structure, patterns, conventions
-2. `.planning/EXECPLAN.md` — how to author and implement plans
-3. `research/` — requirements and PRD for full context
-4. The relevant plan in `.planning/plans/` if implementing one
+2. `CONTEXT.md` — current state, architecture, design decisions, what's built
+3. `.planning/ROADMAP.md` — full project roadmap and phase details
+4. `.planning/EXECPLAN.md` — how to author and implement plans
+5. `research/` — requirements and PRD for full context
+6. The relevant plan in `.planning/plans/` if implementing one
 
 ## Context Window Hygiene
 
