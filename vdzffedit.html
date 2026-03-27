@@ -378,6 +378,7 @@
     }
 
     .video-controls {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -972,18 +973,14 @@
           <button class="vc-btn" id="vc-fwd5" title="Forward 5s"><span class="material-symbols-rounded">fast_forward</span></button>
           <button class="vc-btn" id="vc-end" title="Go to end"><span class="material-symbols-rounded">last_page</span></button>
           <span class="vc-time" id="vc-time">00:00.00 / 00:00.00</span>
-          <select id="vc-speed" title="Playback speed" style="background:var(--vd-surface-2);color:var(--vd-text-dim);border:1px solid var(--vd-border);border-radius:3px;font-size:11px;font-family:Jost,sans-serif;padding:1px 2px;cursor:pointer;">
-            <option value="0.25">0.25x</option>
-            <option value="0.5">0.5x</option>
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="2">2x</option>
-          </select>
+          <span id="vc-speed-label" style="font-size:11px;color:var(--vd-text-dim);min-width:28px;text-align:center;font-family:Jost,sans-serif;">1x</span>
+          <input type="range" id="vc-speed" title="Playback speed" min="0" max="6" step="1" value="3" style="width:60px;height:3px;cursor:pointer;accent-color:var(--vd-text-dim);">
           <button class="vc-btn" id="vc-bookmark" title="Add bookmark (B)"><span class="material-symbols-rounded">bookmark_add</span></button>
+        </div>
+        <!-- Video name + unload (right-aligned) -->
+        <div style="position:absolute;right:8px;top:4px;display:flex;align-items:center;gap:4px;">
           <span class="vc-name" id="vc-name"></span>
-          <button class="vc-btn" id="vc-unload" title="Unload video"><span class="material-symbols-rounded">close</span></button>
+          <button class="vc-btn" id="vc-unload" title="Unload video" style="color:var(--vd-text-muted);"><span class="material-symbols-rounded">close</span></button>
         </div>
 
         <!-- Body: preview + scrubber + sections -->

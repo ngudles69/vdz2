@@ -232,9 +232,17 @@ class VideoZone {
 
   // ---- Playback speed ----
 
+  static SPEED_STOPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
+
   #wireSpeed() {
-    document.getElementById('vc-speed').addEventListener('change', (e) => {
-      this.#video.playbackRate = parseFloat(e.target.value);
+    const slider = document.getElementById('vc-speed');
+    const label = document.getElementById('vc-speed-label');
+
+    slider.addEventListener('input', () => {
+      const idx = parseInt(slider.value);
+      const speed = VideoZone.SPEED_STOPS[idx] || 1;
+      this.#video.playbackRate = speed;
+      label.textContent = speed === 1 ? '1x' : `${speed}x`;
     });
   }
 
