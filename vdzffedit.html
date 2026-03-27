@@ -405,77 +405,70 @@
       max-width: 200px;
     }
 
-    .video-filmstrip {
+    .video-timeline {
       flex-shrink: 0;
-      height: 48px;
-      padding: 0 12px;
+      height: 56px;
       position: relative;
-      display: flex;
-      align-items: stretch;
       overflow: hidden;
       background: #0a0a0e;
     }
-    .video-filmstrip canvas {
-      height: 100%;
-      flex-shrink: 0;
-    }
-
-    .video-scrubber {
-      flex-shrink: 0;
-      height: 24px;
-      padding: 0 12px;
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-    .video-scrubber input[type="range"] {
+    .video-timeline canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
       width: 100%;
-      height: 4px;
+      height: 100%;
+    }
+    .video-timeline input[type="range"] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
       -webkit-appearance: none;
       appearance: none;
-      background: var(--vd-border);
-      border-radius: 2px;
+      background: transparent;
       outline: none;
       cursor: pointer;
-      position: relative;
-      z-index: 2;
+      z-index: 3;
+      margin: 0;
     }
-    .video-scrubber input[type="range"]::-webkit-slider-thumb {
+    .video-timeline input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       width: 2px;
-      height: 22px;
-      border-radius: 1px;
+      height: 56px;
       background: #cccccc;
       cursor: pointer;
-      box-shadow: 0 0 4px rgba(204, 204, 204, 0.5);
+      box-shadow: 0 0 6px rgba(204, 204, 204, 0.6);
     }
     .scrubber-markers {
       position: absolute;
-      left: 12px;
-      right: 12px;
+      left: 0;
+      right: 0;
       top: 0;
       bottom: 0;
       pointer-events: none;
-      z-index: 1;
+      z-index: 2;
     }
     .scrubber-marker {
       position: absolute;
-      top: 2px;
-      bottom: 2px;
+      top: 0;
+      bottom: 0;
       width: 2px;
       background: var(--vd-accent, #7c5cfc);
-      opacity: 0.7;
-      border-radius: 1px;
+      opacity: 0.8;
     }
     .scrubber-marker-label {
       position: absolute;
-      top: -1px;
+      top: 2px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 8px;
-      color: var(--vd-accent, #7c5cfc);
+      font-size: 9px;
+      font-weight: 600;
+      color: #fff;
       font-family: Jost, sans-serif;
       pointer-events: none;
+      text-shadow: 0 0 4px rgba(0,0,0,0.8);
     }
 
     .video-content {
@@ -1020,12 +1013,11 @@
         <!-- Sections content -->
         <div class="video-content" id="video-content"></div>
 
-        <!-- Scrubber + filmstrip (bottom) -->
-        <div class="video-scrubber">
+        <!-- Timeline: filmstrip + scrubber + markers combined -->
+        <div class="video-timeline" id="video-filmstrip">
           <div class="scrubber-markers" id="scrubber-markers"></div>
           <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
         </div>
-        <div class="video-filmstrip" id="video-filmstrip"></div>
       </div>
     </div>
 
