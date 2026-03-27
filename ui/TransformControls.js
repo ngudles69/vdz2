@@ -104,12 +104,12 @@ class TransformControls {
       depthWrite: false,
     });
     this.#handleMatHover = new THREE.MeshBasicMaterial({
-      color: 0x7c5cfc,
+      color: 0xff69b4,
       depthTest: false,
       depthWrite: false,
     });
     this.#borderMat = new THREE.LineDashedMaterial({
-      color: 0x7c5cfc,
+      color: 0xff69b4,
       transparent: true,
       opacity: 0.6,
       depthTest: false,
@@ -117,7 +117,7 @@ class TransformControls {
       gapSize: 3,
     });
     this.#rotLineMat = new THREE.LineBasicMaterial({
-      color: 0x7c5cfc,
+      color: 0xff69b4,
       transparent: true,
       opacity: 0.4,
       depthTest: false,
@@ -644,6 +644,13 @@ class TransformControls {
       return (i === 0 || i === 2) ? 'nwse-resize' : 'nesw-resize';
     }
     return 'default';
+  }
+
+  /** Update all handle/border colors to match selection color. */
+  setSelectionColor(color) {
+    this.#borderMat.color.set(color);
+    this.#rotLineMat.color.set(color);
+    for (const h of this.#handles) h.material.color.set(color);
   }
 }
 

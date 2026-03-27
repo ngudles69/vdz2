@@ -97,7 +97,7 @@
     }
 
     .app-logo {
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 300;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -308,14 +308,13 @@
     /* --- Settings panel --- */
 
     .settings-panel {
-      position: absolute;
-      top: 48px;
-      right: 0;
+      position: fixed;
+      top: 116px;
+      right: 20px;
       width: 260px;
       background: var(--vd-surface);
-      border-left: 1px solid var(--vd-border);
-      border-bottom: 1px solid var(--vd-border);
-      border-bottom-left-radius: 8px;
+      border: 1px solid var(--vd-border);
+      border-radius: 8px;
       padding: 16px;
       z-index: 15;
       display: none;
@@ -364,8 +363,16 @@
       border-radius: 4px;
       font-family: inherit;
       font-size: 12px;
-      padding: 0 6px;
+      padding: 0;
+      text-align: center;
       outline: none;
+      -moz-appearance: textfield;
+    }
+
+    .settings-row input[type="number"]::-webkit-inner-spin-button,
+    .settings-row input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
 
     .settings-row input[type="number"]:focus {
@@ -397,7 +404,7 @@
 
     .layer-panel {
       position: fixed;
-      bottom: 56px;
+      bottom: 72px;
       right: 20px;
       background: var(--vd-surface);
       border: 1px solid var(--vd-border);
@@ -697,13 +704,13 @@
 
     <!-- Layers button -->
     <!-- Stitch picker toggle (bottom-left) -->
-    <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:fixed;bottom:16px;left:28px;z-index:100;font-size:28px;width:40px;height:40px;">
-      <span class="material-symbols-rounded">draw</span>
+    <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:fixed;bottom:16px;left:28px;z-index:100;width:48px;height:48px;">
+      <span class="material-symbols-rounded" style="font-size:40px;">draw</span>
     </button>
 
     <!-- Layers toggle (bottom-right) -->
-    <button id="btn-layers" class="icon-btn" title="Layers" style="position:fixed;bottom:16px;right:20px;z-index:100;font-size:28px;width:40px;height:40px;">
-      <span class="material-symbols-rounded">layers</span>
+    <button id="btn-layers" class="icon-btn" title="Layers" style="position:fixed;bottom:16px;right:20px;z-index:100;width:48px;height:48px;">
+      <span class="material-symbols-rounded" style="font-size:40px;">layers</span>
     </button>
 
     <!-- Settings panel -->

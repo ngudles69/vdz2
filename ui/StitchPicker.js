@@ -101,7 +101,7 @@ class StitchPicker {
       .stitch-picker {
         position: fixed;
         left: 28px;
-        bottom: 56px;
+        bottom: 72px;
         background: var(--vd-surface);
         border: 1px solid var(--vd-border);
         border-radius: 8px;

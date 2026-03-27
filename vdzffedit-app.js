@@ -401,6 +401,9 @@ btnTheme.addEventListener('click', () => {
 // --- Panels ---
 document.getElementById('btn-stitch-toggle').addEventListener('click', () => stitchPicker.toggle());
 keyboard.register({ key: 'S', label: 'Toggle stitch picker', category: 'panels', action: () => stitchPicker.toggle() });
+keyboard.register({ key: 'L', label: 'Toggle layers', category: 'panels', action: () => {
+  layerPanelEl.style.display = layerPanelEl.style.display !== 'none' ? 'none' : 'block';
+}});
 
 // ============================================================
 // Header buttons (undo/redo)
@@ -425,8 +428,19 @@ const btnSettings = document.getElementById('btn-settings');
 const settingsPanel = document.getElementById('settings-panel');
 const settingsClose = document.getElementById('settings-close');
 
-btnSettings.addEventListener('click', () => settingsPanel.classList.toggle('open'));
+btnSettings.addEventListener('click', () => {
+  settingsPanel.classList.toggle('open');
+  if (settingsPanel.classList.contains('open')) {
+    const rect = btnSettings.getBoundingClientRect();
+    settingsPanel.style.top = `${rect.bottom + 8}px`;
+  }
+});
 settingsClose.addEventListener('click', () => settingsPanel.classList.remove('open'));
+
+// Close settings panel when clicking on the canvas (not layers or stitch picker — those are toggles)
+viewport.domElement.addEventListener('pointerdown', () => {
+  settingsPanel.classList.remove('open');
+});
 
 document.getElementById('setting-grid').addEventListener('change', (e) => viewport.setGridVisible(e.target.checked));
 document.getElementById('setting-grid-size').addEventListener('change', (e) => {
@@ -439,7 +453,11 @@ document.getElementById('setting-grid-color').addEventListener('input', (e) => v
 document.getElementById('setting-ruler').addEventListener('change', (e) => viewport.setRulerVisible(e.target.checked));
 document.getElementById('setting-ruler-opacity').addEventListener('change', (e) => viewport.setRulerOpacity(parseInt(e.target.value) / 100));
 document.getElementById('setting-stitch-scale').addEventListener('change', (e) => state.set('stitchScale', parseFloat(e.target.value)));
-document.getElementById('setting-sel-color').addEventListener('input', (e) => state.set('selectionColor', e.target.value));
+document.getElementById('setting-sel-color').addEventListener('input', (e) => {
+  state.set('selectionColor', e.target.value);
+  stitchRenderer.setSelectionColor(e.target.value);
+  transformControls.setSelectionColor(e.target.value);
+});
 
 // ============================================================
 // Layers panel toggle

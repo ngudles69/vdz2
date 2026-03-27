@@ -200,13 +200,14 @@ class StitchRenderer {
     this.#group.add(this.#selectionGroup);
 
     this.#selBoxMat = new THREE.LineDashedMaterial({
-      color: 0x7c5cfc,
+      color: 0xff69b4,
       transparent: true,
       opacity: 0.5,
       depthTest: false,
       dashSize: 3,
       gapSize: 2,
     });
+
   }
 
   #syncSelectionBoxes() {
@@ -370,6 +371,11 @@ class StitchRenderer {
 
   /** @returns {number} Symbol size in world units */
   get symbolSize() { return this.#symbolSize; }
+
+  /** Update the selection box color. */
+  setSelectionColor(color) {
+    if (this.#selBoxMat) this.#selBoxMat.color.set(color);
+  }
 
   /** Set symbol size and mark dirty */
   setSymbolSize(size) {
