@@ -99,7 +99,7 @@ class StitchPicker {
     style.id = 'stitch-picker-styles';
     style.textContent = `
       .stitch-picker {
-        position: fixed;
+        position: absolute;
         left: 28px;
         bottom: 72px;
         background: var(--vd-surface);
@@ -295,7 +295,7 @@ class StitchPicker {
   // ---- DOM ----
 
   #buildDOM() {
-    const container = document.body;
+    const container = document.getElementById('canvas-container') || document.body;
     if (!container) return;
 
     this.#el = document.createElement('div');
