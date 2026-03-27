@@ -39,12 +39,13 @@ class VideoZone {
     this.#bus = bus;
     this.#state = state;
 
-    // Create hidden video element
+    // Create video element (shown in preview area)
     this.#video = document.createElement('video');
     this.#video.preload = 'auto';
     this.#video.playsInline = true;
-    this.#video.style.display = 'none';
-    document.body.appendChild(this.#video);
+    this.#video.muted = true;
+    this.#video.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
+    document.getElementById('video-preview').appendChild(this.#video);
 
     // DOM refs
     this.#zone = document.getElementById('video-zone');
@@ -60,6 +61,7 @@ class VideoZone {
     this.#wireTransport();
     this.#wireScrubber();
     this.#wireBookmark();
+    this.#wireSpeed();
   }
 
   // ---- Load / Unload ----
@@ -226,6 +228,14 @@ class VideoZone {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`;
+  }
+
+  // ---- Playback speed ----
+
+  #wireSpeed() {
+    document.getElementById('vc-speed').addEventListener('change', (e) => {
+      this.#video.playbackRate = parseFloat(e.target.value);
+    });
   }
 
   // ---- Bookmarks ----

@@ -331,7 +331,28 @@
       height: 42px;
     }
     .video-zone.expanded {
-      height: 140px;
+      height: 160px;
+    }
+
+    .video-zone-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .video-preview {
+      flex-shrink: 0;
+      width: 140px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--vd-border, #2a2a38);
+    }
+    .video-preview video {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
     }
 
     .video-zone-empty {
@@ -359,6 +380,7 @@
     .video-controls {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 2px;
       padding: 4px 12px;
       height: 34px;
@@ -600,7 +622,7 @@
     /* --- Layer panel --- */
 
     .layer-panel {
-      position: fixed;
+      position: absolute;
       bottom: 72px;
       right: 20px;
       background: var(--vd-surface);
@@ -909,6 +931,22 @@
         <span>Restoring canvas...</span>
       </div>
       <div id="box-select-rect"></div>
+
+      <!-- Stitch picker toggle (bottom-left, inside canvas) -->
+      <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:absolute;bottom:16px;left:28px;z-index:100;width:48px;height:48px;">
+        <span class="material-symbols-rounded" style="font-size:40px;">draw</span>
+      </button>
+
+      <!-- Layer panel (inside canvas so it stays above video zone) -->
+      <div id="layer-panel" class="layer-panel" style="display:none;">
+        <div class="layer-panel-header">Layers</div>
+        <div id="layer-list" class="layer-list"></div>
+      </div>
+
+      <!-- Layers toggle (bottom-right, inside canvas) -->
+      <button id="btn-layers" class="icon-btn" title="Layers" style="position:absolute;bottom:16px;right:20px;z-index:100;width:48px;height:48px;">
+        <span class="material-symbols-rounded" style="font-size:40px;">layers</span>
+      </button>
     </div>
 
     <!-- Video zone -->
@@ -921,9 +959,9 @@
         </button>
       </div>
 
-      <!-- Active state: controls + scrubber + content (hidden until video loaded) -->
+      <!-- Active state (hidden until video loaded) -->
       <div id="video-zone-active" style="display:none;flex-direction:column;height:100%;">
-        <!-- Transport controls -->
+        <!-- Transport controls (centered) -->
         <div class="video-controls">
           <button class="vc-btn" id="vc-start" title="Go to start"><span class="material-symbols-rounded">first_page</span></button>
           <button class="vc-btn" id="vc-back5" title="Back 5s"><span class="material-symbols-rounded">fast_rewind</span></button>
@@ -934,19 +972,32 @@
           <button class="vc-btn" id="vc-fwd5" title="Forward 5s"><span class="material-symbols-rounded">fast_forward</span></button>
           <button class="vc-btn" id="vc-end" title="Go to end"><span class="material-symbols-rounded">last_page</span></button>
           <span class="vc-time" id="vc-time">00:00.00 / 00:00.00</span>
+          <select id="vc-speed" title="Playback speed" style="background:var(--vd-surface-2);color:var(--vd-text-dim);border:1px solid var(--vd-border);border-radius:3px;font-size:11px;font-family:Jost,sans-serif;padding:1px 2px;cursor:pointer;">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="0.75">0.75x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.25">1.25x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
           <button class="vc-btn" id="vc-bookmark" title="Add bookmark (B)"><span class="material-symbols-rounded">bookmark_add</span></button>
-          <span class="vc-spacer"></span>
           <span class="vc-name" id="vc-name"></span>
           <button class="vc-btn" id="vc-unload" title="Unload video"><span class="material-symbols-rounded">close</span></button>
         </div>
 
-        <!-- Scrubber -->
-        <div class="video-scrubber">
-          <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
-        </div>
+        <!-- Body: preview + scrubber + sections -->
+        <div class="video-zone-body">
+          <!-- Video preview thumbnail -->
+          <div class="video-preview" id="video-preview"></div>
 
-        <!-- Content area (for sections table later) -->
-        <div class="video-content" id="video-content">
+          <!-- Right side: scrubber + content -->
+          <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+            <div class="video-scrubber">
+              <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
+            </div>
+            <div class="video-content" id="video-content"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -957,35 +1008,8 @@
     <!-- Image upload (hidden file input) -->
     <input type="file" id="image-upload" accept="image/jpeg,image/png,image/gif" style="display:none">
 
-    <!-- Layer panel -->
-    <div id="layer-panel" class="layer-panel" style="display:none;">
-      <div class="layer-panel-header">Layers</div>
-      <div id="layer-list" class="layer-list">
-        <!-- Rows built dynamically by LayerPanel.js. Each row:
-          <div class="layer-row" data-layer="name">
-            <span class="layer-name">Label</span>
-            <div class="layer-actions">
-              [layer-specific icons, e.g. upload for image layer]
-              <button class="layer-btn layer-lock"><span class="material-symbols-rounded">lock_open</span></button>
-              <button class="layer-btn layer-vis"><span class="material-symbols-rounded">visibility</span></button>
-              <button class="layer-btn layer-config"><span class="material-symbols-rounded">settings</span></button>
-            </div>
-          </div>
-        -->
-      </div>
-    </div>
 
     <!-- Layers button -->
-
-    <!-- Stitch picker toggle (bottom-left) -->
-    <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:fixed;bottom:16px;left:28px;z-index:100;width:48px;height:48px;">
-      <span class="material-symbols-rounded" style="font-size:40px;">draw</span>
-    </button>
-
-    <!-- Layers toggle (bottom-right) -->
-    <button id="btn-layers" class="icon-btn" title="Layers" style="position:fixed;bottom:16px;right:20px;z-index:100;width:48px;height:48px;">
-      <span class="material-symbols-rounded" style="font-size:40px;">layers</span>
-    </button>
 
     <!-- Settings panel -->
     <div id="settings-panel" class="settings-panel">
