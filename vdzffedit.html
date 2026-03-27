@@ -451,13 +451,26 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 2px;
+      width: 4px;
       background: var(--vd-accent, #7c5cfc);
-      opacity: 0.8;
+      transform: translateX(-50%);
+      cursor: ew-resize;
+      pointer-events: auto;
+    }
+    .scrubber-marker::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      background: var(--vd-accent, #7c5cfc);
+      border-radius: 0 0 3px 3px;
     }
     .scrubber-marker-label {
       position: absolute;
-      top: 2px;
+      top: 12px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 9px;

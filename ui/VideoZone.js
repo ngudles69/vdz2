@@ -205,31 +205,71 @@ class VideoZone {
 
   // ---- Timeline (click/drag to seek) ----
 
-  #wireTimeline() {
-    let dragging = false;
+  /** @type {number|null} Index of bookmark being dragged */
+  #draggingBookmark = null;
 
-    const seekToX = (clientX) => {
-      const rect = this.#timeline.getBoundingClientRect();
-      const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      this.#video.currentTime = pct * (this.#video.duration || 0);
-      this.#updatePlayhead();
-      this.#updateTime();
-    };
+  #wireTimeline() {
+    let scrubbing = false;
 
     this.#timeline.addEventListener('pointerdown', (e) => {
-      dragging = true;
+      // Only handle clicks on the timeline itself, not on bookmark markers
+      if (e.target.classList.contains('scrubber-marker')) return;
+
+      scrubbing = true;
       this.#timeline.setPointerCapture(e.pointerId);
-      seekToX(e.clientX);
+      this.#seekToX(e.clientX);
     });
 
     this.#timeline.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      seekToX(e.clientX);
+      if (this.#draggingBookmark !== null) {
+        // Dragging a bookmark — move it and seek
+        this.#moveBookmarkToX(this.#draggingBookmark, e.clientX);
+        return;
+      }
+      if (!scrubbing) return;
+      this.#seekToX(e.clientX);
     });
 
     this.#timeline.addEventListener('pointerup', () => {
-      dragging = false;
+      if (this.#draggingBookmark !== null) {
+        this.#draggingBookmark = null;
+        this.#renderBookmarks();
+        this.#bus.emit('video:bookmarks-changed', { bookmarks: [...this.#bookmarks] });
+      }
+      scrubbing = false;
     });
+  }
+
+  #seekToX(clientX) {
+    const rect = this.#timeline.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    this.#video.currentTime = pct * (this.#video.duration || 0);
+    this.#updatePlayhead();
+    this.#updateTime();
+  }
+
+  #moveBookmarkToX(index, clientX) {
+    const rect = this.#timeline.getBoundingClientRect();
+    const dur = this.#video.duration || 0;
+    let pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    let time = pct * dur;
+
+    // Clamp between neighbors (can't move past adjacent bookmarks)
+    const minTime = index > 0 ? this.#bookmarks[index - 1] + 0.05 : 0.05;
+    const maxTime = index < this.#bookmarks.length - 1 ? this.#bookmarks[index + 1] - 0.05 : dur - 0.05;
+    time = Math.max(minTime, Math.min(maxTime, time));
+    pct = time / dur;
+
+    this.#bookmarks[index] = time;
+    this.#video.currentTime = time;
+    this.#updatePlayhead();
+    this.#updateTime();
+
+    // Update this marker position live
+    const markers = this.#timeline.querySelectorAll('.scrubber-marker');
+    if (markers[index]) {
+      markers[index].style.left = `${pct * 100}%`;
+    }
   }
 
   #updatePlayhead() {
@@ -432,6 +472,13 @@ class VideoZone {
       label.className = 'scrubber-marker-label';
       label.textContent = `${i + 1}`;
       marker.appendChild(label);
+
+      // Drag to reposition bookmark
+      marker.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        this.#draggingBookmark = i;
+        this.#timeline.setPointerCapture(e.pointerId);
+      });
 
       container.appendChild(marker);
     });
