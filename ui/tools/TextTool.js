@@ -132,6 +132,7 @@ class TextTool extends Tool {
       position: absolute;
       left: ${screenX - rect.left}px;
       top: ${screenY - rect.top - 16}px;
+      transform: translateX(-50%);
       z-index: 20;
       background: var(--vd-surface-2, #1e1e2a);
       color: var(--vd-text, #fff);
@@ -141,6 +142,7 @@ class TextTool extends Tool {
       font-family: Jost, sans-serif;
       font-size: 14px;
       min-width: 120px;
+      text-align: center;
       outline: none;
     `;
 
