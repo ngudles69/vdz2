@@ -278,15 +278,38 @@ class VideoZone {
       extractor.addEventListener('loadeddata', resolve, { once: true });
     });
 
+    const vw = this.#video.videoWidth;
+    const vh = this.#video.videoHeight;
+
     const drawFrame = (index) => {
       return new Promise(resolve => {
         const time = (index / numFrames) * dur;
         extractor.currentTime = time;
 
         extractor.addEventListener('seeked', () => {
-          const x = Math.round((index / numFrames) * containerWidth);
-          const w = Math.round(((index + 1) / numFrames) * containerWidth) - x;
-          ctx.drawImage(extractor, x, 0, w, frameHeight);
+          const dx = Math.round((index / numFrames) * containerWidth);
+          const dw = Math.round(((index + 1) / numFrames) * containerWidth) - dx;
+
+          // "Cover" crop: fill the slot completely, cropping excess
+          const slotAspect = dw / frameHeight;
+          const videoAspect = vw / vh;
+
+          let sx, sy, sw, sh;
+          if (videoAspect > slotAspect) {
+            // Video wider than slot — crop sides
+            sh = vh;
+            sw = sh * slotAspect;
+            sx = (vw - sw) / 2;
+            sy = 0;
+          } else {
+            // Video taller than slot — crop top/bottom
+            sw = vw;
+            sh = sw / slotAspect;
+            sx = 0;
+            sy = (vh - sh) / 2;
+          }
+
+          ctx.drawImage(extractor, sx, sy, sw, sh, dx, 0, dw, frameHeight);
           resolve();
         }, { once: true });
       });
