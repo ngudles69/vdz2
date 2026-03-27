@@ -337,20 +337,18 @@
       height: 32px;
     }
 
-    .video-zone-body {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-
     .video-preview {
-      flex-shrink: 0;
-      width: 140px;
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 80px;
+      height: 60px;
       background: #000;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-right: 1px solid var(--vd-border, #2a2a38);
+      z-index: 3;
+      border-top-right-radius: 4px;
     }
     .video-preview video {
       max-width: 100%;
@@ -447,11 +445,12 @@
     }
     .video-scrubber input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 3px;
-      height: 18px;
+      width: 2px;
+      height: 22px;
       border-radius: 1px;
       background: #cccccc;
       cursor: pointer;
+      box-shadow: 0 0 4px rgba(204, 204, 204, 0.5);
     }
     .scrubber-markers {
       position: absolute;
@@ -995,7 +994,7 @@
       </div>
 
       <!-- Active state (hidden until video loaded) -->
-      <div id="video-zone-active" style="display:none;flex-direction:column;height:100%;">
+      <div id="video-zone-active" style="display:none;flex-direction:column;height:100%;position:relative;">
         <!-- Transport controls (centered) -->
         <div class="video-controls">
           <button class="vc-btn" id="vc-start" title="Go to start"><span class="material-symbols-rounded">first_page</span></button>
@@ -1018,20 +1017,17 @@
           <button class="vc-btn" id="vc-unload" title="Unload video" style="color:var(--vd-text-muted);"><span class="material-symbols-rounded">close</span></button>
         </div>
 
-        <!-- Body: preview + scrubber + sections -->
-        <div class="video-zone-body">
-          <!-- Video preview thumbnail -->
-          <div class="video-preview" id="video-preview"></div>
-
-          <!-- Right side: scrubber + content -->
-          <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
-            <div class="video-scrubber">
-              <div class="scrubber-markers" id="scrubber-markers"></div>
-              <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
-            </div>
-            <div class="video-content" id="video-content"></div>
-          </div>
+        <!-- Scrubber (full width) -->
+        <div class="video-scrubber">
+          <div class="scrubber-markers" id="scrubber-markers"></div>
+          <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
         </div>
+
+        <!-- Sections content (full width) -->
+        <div class="video-content" id="video-content"></div>
+
+        <!-- Video preview thumbnail (corner overlay) -->
+        <div class="video-preview" id="video-preview"></div>
       </div>
     </div>
 
