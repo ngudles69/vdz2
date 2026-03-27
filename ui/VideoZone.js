@@ -62,6 +62,7 @@ class VideoZone {
     this.#wireScrubber();
     this.#wireBookmark();
     this.#wireSpeed();
+    this.#wireMinimize();
   }
 
   // ---- Load / Unload ----
@@ -117,15 +118,23 @@ class VideoZone {
   #showActive() {
     this.#emptyEl.style.display = 'none';
     this.#activeEl.style.display = 'flex';
-    this.#zone.classList.remove('collapsed');
+    this.#zone.classList.remove('collapsed', 'minimized');
     this.#zone.classList.add('expanded');
   }
 
   #showEmpty() {
-    this.#emptyEl.style.display = 'flex';
     this.#activeEl.style.display = 'none';
-    this.#zone.classList.remove('expanded');
+    this.#zone.classList.remove('expanded', 'minimized');
     this.#zone.classList.add('collapsed');
+    // Restore the load button
+    this.#emptyEl.innerHTML = '';
+    const loadBtn = document.createElement('button');
+    loadBtn.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle;margin-right:4px;">movie</span> Load Video';
+    loadBtn.addEventListener('click', () => document.getElementById('video-upload').click());
+    // Match the original style
+    loadBtn.style.cssText = 'background:var(--vd-surface-2);border:1px dashed var(--vd-border);border-radius:6px;color:var(--vd-text-dim);font-family:Jost,sans-serif;font-size:13px;padding:6px 18px;cursor:pointer;';
+    this.#emptyEl.appendChild(loadBtn);
+    this.#emptyEl.style.display = 'flex';
   }
 
   // ---- Transport ----
@@ -228,6 +237,43 @@ class VideoZone {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`;
+  }
+
+  // ---- Minimize / Expand ----
+
+  #wireMinimize() {
+    const minBtn = document.getElementById('vc-minimize');
+    minBtn.addEventListener('click', () => this.toggleMinimize());
+
+    // Also allow clicking the empty area to expand when minimized
+    this.#emptyEl.parentElement.addEventListener('click', (e) => {
+      if (this.#zone.classList.contains('minimized') && e.target === this.#zone) {
+        this.toggleMinimize();
+      }
+    });
+  }
+
+  toggleMinimize() {
+    if (!this.hasVideo) return;
+    const isMinimized = this.#zone.classList.contains('minimized');
+    if (isMinimized) {
+      this.#zone.classList.remove('minimized');
+      this.#zone.classList.add('expanded');
+      this.#activeEl.style.display = 'flex';
+      document.getElementById('vc-minimize').querySelector('.material-symbols-rounded').textContent = 'expand_more';
+    } else {
+      this.#zone.classList.remove('expanded');
+      this.#zone.classList.add('minimized');
+      this.#activeEl.style.display = 'none';
+      // Show a minimal bar with expand button
+      this.#emptyEl.style.display = 'flex';
+      this.#emptyEl.innerHTML = '';
+      const expandBtn = document.createElement('button');
+      expandBtn.style.cssText = 'background:none;border:none;color:var(--vd-text-dim);cursor:pointer;font-family:Jost,sans-serif;font-size:12px;display:flex;align-items:center;gap:4px;';
+      expandBtn.innerHTML = `<span class="material-symbols-rounded" style="font-size:16px;">expand_less</span> ${this.#videoName || 'Video'}`;
+      expandBtn.addEventListener('click', () => this.toggleMinimize());
+      this.#emptyEl.appendChild(expandBtn);
+    }
   }
 
   // ---- Playback speed ----

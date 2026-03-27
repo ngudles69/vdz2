@@ -333,6 +333,9 @@
     .video-zone.expanded {
       height: 160px;
     }
+    .video-zone.minimized {
+      height: 32px;
+    }
 
     .video-zone-body {
       display: flex;
@@ -1008,9 +1011,10 @@
           <input type="range" id="vc-speed" title="Playback speed" min="0" max="6" step="1" value="3" style="width:60px;height:3px;cursor:pointer;accent-color:var(--vd-text-dim);">
           <button class="vc-btn" id="vc-bookmark" title="Add bookmark (B)"><span class="material-symbols-rounded">bookmark_add</span></button>
         </div>
-        <!-- Video name + unload (right-aligned) -->
-        <div style="position:absolute;right:8px;top:4px;display:flex;align-items:center;gap:4px;">
+        <!-- Right-aligned: name, minimize, unload -->
+        <div style="position:absolute;right:8px;top:4px;display:flex;align-items:center;gap:2px;">
           <span class="vc-name" id="vc-name"></span>
+          <button class="vc-btn" id="vc-minimize" title="Minimize"><span class="material-symbols-rounded">expand_more</span></button>
           <button class="vc-btn" id="vc-unload" title="Unload video" style="color:var(--vd-text-muted);"><span class="material-symbols-rounded">close</span></button>
         </div>
 
