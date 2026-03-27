@@ -245,7 +245,23 @@ class StitchRenderer {
       if (!s) continue;
 
       const sc = s.scale ?? 1;
-      const h = half * sc;
+      let hw, hh; // half-width, half-height
+
+      if (s.type === 'text') {
+        // Use actual text mesh dimensions
+        const mesh = this.#textMeshes.get(id);
+        if (mesh) {
+          hw = (mesh.userData._worldW * sc) / 2;
+          hh = (mesh.userData._worldH * sc) / 2;
+        } else {
+          hw = half * sc;
+          hh = half * sc;
+        }
+      } else {
+        hw = half * sc;
+        hh = half * sc;
+      }
+
       const cx = s.position.x;
       const cy = s.position.y;
 
@@ -255,7 +271,7 @@ class StitchRenderer {
 
       // 4 corners of the box, rotated around center
       const corners = [
-        [-h, -h], [h, -h], [h, h], [-h, h], [-h, -h], // close the loop
+        [-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh], [-hw, -hh], // close the loop
       ];
 
       const positions = new Float32Array(corners.length * 3);
@@ -319,8 +335,8 @@ class StitchRenderer {
     ctx.clearRect(0, 0, cw, ch);
     ctx.font = font;
     ctx.fillStyle = color;
-    ctx.textBaseline = 'top';
-    ctx.fillText(text, pad, pad);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, pad, ch / 2);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
