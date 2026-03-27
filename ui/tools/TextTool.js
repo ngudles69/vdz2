@@ -45,8 +45,11 @@ class TextTool extends Tool {
   onPointerDown(wp, e) {
     if (this.stitchesLocked) return false;
 
-    // If input is open, ignore clicks (let the input handle itself)
-    if (this.#input) return true;
+    // If input is open, clicking outside cancels it
+    if (this.#input) {
+      this.#cancelInput();
+      return true;
+    }
 
     // 1. Transform handles
     if (this.transform?.visible) {

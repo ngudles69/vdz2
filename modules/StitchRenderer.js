@@ -372,12 +372,7 @@ class StitchRenderer {
         const worldH = height * 0.5;
 
         const geometry = new THREE.PlaneGeometry(worldW, worldH);
-        // Flip UV Y for Canvas2D
-        const uvs = geometry.getAttribute('uv');
-        for (let i = 0; i < uvs.count; i++) {
-          uvs.setY(i, 1.0 - uvs.getY(i));
-        }
-        uvs.needsUpdate = true;
+        // No UV flip needed — CanvasTexture.flipY is true by default
 
         const material = new THREE.MeshBasicMaterial({
           map: texture,
