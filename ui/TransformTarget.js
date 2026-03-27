@@ -164,7 +164,8 @@ class StitchTransformTarget {
     this.#store.batchUpdate(updates);
   }
 
-  applyResize(scaleFactor, anchor) {
+  applyResize(scaleX, scaleY, anchor) {
+    const scaleFactor = Math.max(scaleX, scaleY);
     const updates = [];
     for (const [id, startPos] of this.#startPositions) {
       const rx = startPos.x - anchor.x;
@@ -273,19 +274,18 @@ class ImageTransformTarget {
     mesh.rotation.z = this.#startRotation - deltaAngle;
   }
 
-  applyResize(scaleFactor, anchor) {
+  applyResize(scaleX, scaleY, anchor) {
     const mesh = this.#imageOverlay.getImageMesh();
     if (!mesh || !this.#startPos || !this.#startScale) return;
 
-    const newScaleX = Math.max(0.05, this.#startScale.x * scaleFactor);
-    const newScaleY = Math.max(0.05, this.#startScale.y * scaleFactor);
+    const newScaleX = Math.max(0.05, this.#startScale.x * scaleX);
+    const newScaleY = Math.max(0.05, this.#startScale.y * scaleY);
     mesh.scale.set(newScaleX, newScaleY, 1);
 
-    // Reposition so the anchor corner stays fixed
     const rx = this.#startPos.x - anchor.x;
     const ry = this.#startPos.y - anchor.y;
-    mesh.position.x = anchor.x + rx * scaleFactor;
-    mesh.position.y = anchor.y + ry * scaleFactor;
+    mesh.position.x = anchor.x + rx * scaleX;
+    mesh.position.y = anchor.y + ry * scaleY;
   }
 
   /** @returns {TransformResult} */
@@ -361,6 +361,7 @@ class VideoTransformTarget {
     }
     mesh.position.x = nx;
     mesh.position.y = ny;
+    this.#videoOverlay.updateRing();
   }
 
   get canRotate() { return false; }
@@ -369,18 +370,19 @@ class VideoTransformTarget {
     // Video frame cannot rotate
   }
 
-  applyResize(scaleFactor, anchor) {
+  applyResize(scaleX, scaleY, anchor) {
     const mesh = this.#videoOverlay.getMesh();
     if (!mesh || !this.#startPos || !this.#startScale) return;
 
-    const newScaleX = Math.max(0.05, this.#startScale.x * scaleFactor);
-    const newScaleY = Math.max(0.05, this.#startScale.y * scaleFactor);
+    const newScaleX = Math.max(0.05, this.#startScale.x * scaleX);
+    const newScaleY = Math.max(0.05, this.#startScale.y * scaleY);
     mesh.scale.set(newScaleX, newScaleY, 1);
 
     const rx = this.#startPos.x - anchor.x;
     const ry = this.#startPos.y - anchor.y;
-    mesh.position.x = anchor.x + rx * scaleFactor;
-    mesh.position.y = anchor.y + ry * scaleFactor;
+    mesh.position.x = anchor.x + rx * scaleX;
+    mesh.position.y = anchor.y + ry * scaleY;
+    this.#videoOverlay.updateRing();
   }
 
   getResult() {
@@ -391,7 +393,7 @@ class VideoTransformTarget {
     return {
       moves: [{ id, oldPos: { ...this.#startPos }, newPos: { x: mesh.position.x, y: mesh.position.y } }],
       rotations: [{ id, oldRot: this.#startRotation, newRot: mesh.rotation.z }],
-      scales: [{ id, oldScale: this.#startScale.x, newScale: mesh.scale.x }],
+      scales: [{ id, oldScaleX: this.#startScale.x, oldScaleY: this.#startScale.y, newScaleX: mesh.scale.x, newScaleY: mesh.scale.y }],
     };
   }
 

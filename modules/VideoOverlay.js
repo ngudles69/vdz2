@@ -22,6 +22,9 @@ class VideoOverlay {
   /** @type {THREE.Mesh|null} */
   #mesh = null;
 
+  /** @type {THREE.Line|null} Center ring indicator */
+  #centerRing = null;
+
   /** @type {THREE.VideoTexture|null} */
   #texture = null;
 
@@ -78,10 +81,29 @@ class VideoOverlay {
 
     this.#videoGroup.add(this.#mesh);
 
+    // Red ring at center of video frame — in indicators layer (above everything)
+    const indicators = this.#layerManager.getGroup('indicators');
+    if (indicators) {
+      const ringRadius = 6;
+      const ringGeom = new THREE.RingGeometry(ringRadius - 1, ringRadius, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xff3333, depthTest: false, depthWrite: false, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
+      this.#centerRing = new THREE.Mesh(ringGeom, ringMat);
+      this.#centerRing.renderOrder = 1500;
+      this.#centerRing.position.set(this.#mesh.position.x, this.#mesh.position.y, 0);
+      indicators.add(this.#centerRing);
+    }
+
     this.#bus.emit('video-overlay:loaded', { width, height });
   }
 
   removeVideo() {
+    if (this.#centerRing) {
+      const indicators = this.#layerManager.getGroup('indicators');
+      if (indicators) indicators.remove(this.#centerRing);
+      this.#centerRing.geometry.dispose();
+      this.#centerRing.material.dispose();
+      this.#centerRing = null;
+    }
     if (this.#mesh) {
       this.#videoGroup.remove(this.#mesh);
       this.#mesh.geometry.dispose();
@@ -96,6 +118,13 @@ class VideoOverlay {
     this.#videoWidth = 0;
     this.#videoHeight = 0;
     this.#bus.emit('video-overlay:removed');
+  }
+
+  /** Sync the center ring position to the mesh position */
+  updateRing() {
+    if (this.#centerRing && this.#mesh) {
+      this.#centerRing.position.set(this.#mesh.position.x, this.#mesh.position.y, 0);
+    }
   }
 
   /** @returns {THREE.Mesh|null} */

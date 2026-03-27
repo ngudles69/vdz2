@@ -16,7 +16,7 @@ class VideoZone {
   /** @type {HTMLElement} */
   #zone;
   #emptyEl;
-  #activeEl;
+  #controlsEl;
   #playhead;
   #timeline;
   #timeDisplay;
@@ -31,6 +31,9 @@ class VideoZone {
 
   /** @type {number[]} Bookmark timestamps in seconds */
   #bookmarks = [];
+
+  /** @type {number|null} Currently selected bookmark index */
+  #selectedBookmark = null;
 
   /** @type {string|null} Video filename */
   #videoName = null;
@@ -50,8 +53,8 @@ class VideoZone {
     // DOM refs
     this.#zone = document.getElementById('video-zone');
     this.#emptyEl = document.getElementById('video-zone-empty');
-    this.#activeEl = document.getElementById('video-zone-active');
-    this.#playhead = document.getElementById('vc-playhead');
+    this.#controlsEl = document.getElementById('video-controls');
+    this.#playhead = null; // created by #extractFilmstrip
     this.#timeline = document.getElementById('video-filmstrip');
     this.#timeDisplay = document.getElementById('vc-time');
     this.#nameDisplay = document.getElementById('vc-name');
@@ -117,23 +120,17 @@ class VideoZone {
 
   #showActive() {
     this.#emptyEl.style.display = 'none';
-    this.#activeEl.style.display = 'flex';
-    this.#zone.classList.remove('collapsed', 'minimized');
+    this.#controlsEl.style.display = 'flex';
+    this.#timeline.style.display = 'block';
+    this.#zone.classList.remove('collapsed');
     this.#zone.classList.add('expanded');
   }
 
   #showEmpty() {
-    this.#activeEl.style.display = 'none';
-    this.#zone.classList.remove('expanded', 'minimized');
+    this.#controlsEl.style.display = 'none';
+    this.#timeline.style.display = 'none';
+    this.#zone.classList.remove('expanded');
     this.#zone.classList.add('collapsed');
-    // Restore the load button
-    this.#emptyEl.innerHTML = '';
-    const loadBtn = document.createElement('button');
-    loadBtn.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;vertical-align:middle;margin-right:4px;">movie</span> Load Video';
-    loadBtn.addEventListener('click', () => document.getElementById('video-upload').click());
-    // Match the original style
-    loadBtn.style.cssText = 'background:var(--vd-surface-2);border:1px dashed var(--vd-border);border-radius:6px;color:var(--vd-text-dim);font-family:Jost,sans-serif;font-size:13px;padding:6px 18px;cursor:pointer;';
-    this.#emptyEl.appendChild(loadBtn);
     this.#emptyEl.style.display = 'flex';
   }
 
@@ -377,37 +374,26 @@ class VideoZone {
   // ---- Minimize / Expand ----
 
   #wireMinimize() {
-    const minBtn = document.getElementById('vc-minimize');
-    minBtn.addEventListener('click', () => this.toggleMinimize());
-
-    // Also allow clicking the empty area to expand when minimized
-    this.#emptyEl.parentElement.addEventListener('click', (e) => {
-      if (this.#zone.classList.contains('minimized') && e.target === this.#zone) {
-        this.toggleMinimize();
-      }
-    });
+    document.getElementById('vc-minimize').addEventListener('click', () => this.toggleMinimize());
   }
 
   toggleMinimize() {
     if (!this.hasVideo) return;
-    const isMinimized = this.#zone.classList.contains('minimized');
-    if (isMinimized) {
-      this.#zone.classList.remove('minimized');
-      this.#zone.classList.add('expanded');
-      this.#activeEl.style.display = 'flex';
-      document.getElementById('vc-minimize').querySelector('.material-symbols-rounded').textContent = 'expand_more';
-    } else {
+    const minBtn = document.getElementById('vc-minimize');
+    const filmstripVisible = this.#timeline.style.display !== 'none';
+
+    if (filmstripVisible) {
+      // Hide filmstrip only, controls stay
+      this.#timeline.style.display = 'none';
       this.#zone.classList.remove('expanded');
-      this.#zone.classList.add('minimized');
-      this.#activeEl.style.display = 'none';
-      // Show a minimal bar with expand button
-      this.#emptyEl.style.display = 'flex';
-      this.#emptyEl.innerHTML = '';
-      const expandBtn = document.createElement('button');
-      expandBtn.style.cssText = 'background:none;border:none;color:var(--vd-text-dim);cursor:pointer;font-family:Jost,sans-serif;font-size:12px;display:flex;align-items:center;gap:4px;';
-      expandBtn.innerHTML = `<span class="material-symbols-rounded" style="font-size:16px;">expand_less</span> ${this.#videoName || 'Video'}`;
-      expandBtn.addEventListener('click', () => this.toggleMinimize());
-      this.#emptyEl.appendChild(expandBtn);
+      this.#zone.classList.add('collapsed');
+      minBtn.querySelector('.material-symbols-rounded').textContent = 'expand_less';
+    } else {
+      // Show filmstrip
+      this.#timeline.style.display = 'block';
+      this.#zone.classList.remove('collapsed');
+      this.#zone.classList.add('expanded');
+      minBtn.querySelector('.material-symbols-rounded').textContent = 'expand_more';
     }
   }
 
@@ -494,14 +480,45 @@ class VideoZone {
 
   #renderBookmarks() {
     this.#renderScrubberMarkers();
+    this.#renderBookmarkButtons();
+  }
 
-    // Update hint text
-    const hint = document.getElementById('vc-hint');
-    if (hint) {
-      hint.textContent = this.#bookmarks.length > 0
-        ? `(${this.#bookmarks.length} bookmark${this.#bookmarks.length > 1 ? 's' : ''})`
-        : '(press B to bookmark)';
+  #renderBookmarkButtons() {
+    const container = document.getElementById('vc-bookmark-btns');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (this.#bookmarks.length === 0) {
+      container.innerHTML = '<span style="font-size:10px;color:var(--vd-text-muted);font-family:Jost,sans-serif;">press B to bookmark</span>';
+      this.#selectedBookmark = null;
+      return;
     }
+
+    this.#bookmarks.forEach((time, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'vc-bm-btn';
+      if (i === this.#selectedBookmark) btn.classList.add('selected');
+      btn.textContent = `${i + 1}`;
+      btn.title = `${this.#fmtTime(time)} — click to select, X to delete`;
+
+      btn.addEventListener('click', () => {
+        this.#selectedBookmark = i;
+        this.#video.currentTime = time;
+        this.#updatePlayhead();
+        this.#updateTime();
+        this.#renderBookmarkButtons();
+      });
+
+      container.appendChild(btn);
+    });
+  }
+
+  /** Delete the currently selected bookmark (called from keyboard) */
+  deleteSelectedBookmark() {
+    if (this.#selectedBookmark === null) return;
+    if (this.#selectedBookmark >= this.#bookmarks.length) return;
+    this.removeBookmark(this.#selectedBookmark);
+    this.#selectedBookmark = null;
   }
 
   /** Get sections from bookmarks. Each bookmark is a section boundary. */
@@ -525,6 +542,9 @@ class VideoZone {
 
   /** @returns {number[]} */
   get bookmarks() { return [...this.#bookmarks]; }
+
+  /** @returns {boolean} */
+  get hasSelectedBookmark() { return this.#selectedBookmark !== null && this.#selectedBookmark < this.#bookmarks.length; }
 
   /** @returns {Array<{start: number, end: number}>} */
   get sections() { return this.#getSections(); }

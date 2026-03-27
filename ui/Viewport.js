@@ -182,6 +182,8 @@ class Viewport {
     const lines = new THREE.LineSegments(geometry, material);
     lines.renderOrder = 1000;
     this.#gridGroup.add(lines);
+
+    // Red dot at origin (0,0) — added to indicators layer via setLayerManager
   }
 
   // ==== Context Recovery ====
@@ -361,6 +363,16 @@ class Viewport {
     this.#layerManager = lm;
     this.#createBackground();
     if (this.#gridGroup) this.#gridGroup.traverse(ch => { if (ch.isLineSegments) ch.renderOrder = 1000; });
+
+    // Red dot at origin (0,0) in the indicators layer
+    const indicators = lm.getGroup('indicators');
+    if (indicators) {
+      const dotGeom = new THREE.CircleGeometry(3, 16);
+      const dotMat = new THREE.MeshBasicMaterial({ color: 0xff3333, depthTest: false, depthWrite: false, transparent: true, opacity: 1.0 });
+      const dot = new THREE.Mesh(dotGeom, dotMat);
+      dot.renderOrder = 1500;
+      indicators.add(dot);
+    }
   }
 
   #createBackground() {

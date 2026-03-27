@@ -331,10 +331,7 @@
       height: 42px;
     }
     .video-zone.expanded {
-      height: 90px;
-    }
-    .video-zone.minimized {
-      height: 32px;
+      height: 98px;
     }
 
 
@@ -364,9 +361,9 @@
       position: relative;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 2px;
+      gap: 3px;
       padding: 4px 12px;
+      padding-right: 60px;
       height: 34px;
       flex-shrink: 0;
     }
@@ -439,6 +436,30 @@
       background: red;
       border-radius: 0 0 3px 3px;
     }
+    .vc-bm-btn {
+      min-width: 20px;
+      height: 20px;
+      border: 1px solid var(--vd-border, #2a2a38);
+      border-radius: 3px;
+      background: var(--vd-surface-2, #1e1e2a);
+      color: var(--vd-text-dim);
+      font-size: 11px;
+      font-family: Jost, sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0 4px;
+      transition: all 0.1s;
+    }
+    .vc-bm-btn:hover {
+      border-color: var(--vd-accent);
+      color: var(--vd-text);
+    }
+    .vc-bm-btn.selected {
+      background: var(--vd-accent, #7c5cfc);
+      color: #fff;
+      border-color: var(--vd-accent);
+    }
+
     .scrubber-markers {
       position: absolute;
       left: 0;
@@ -988,40 +1009,34 @@
         </button>
       </div>
 
-      <!-- Active state (hidden until video loaded) -->
-      <div id="video-zone-active" style="display:none;flex-direction:column;height:100%;">
-        <!-- Single control bar -->
-        <div class="video-controls">
-          <!-- Left: name + hint -->
-          <div style="position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;gap:8px;">
-            <span class="vc-name" id="vc-name" style="color:var(--vd-text-muted);"></span>
-            <span style="font-size:10px;color:var(--vd-text-muted);font-family:Jost,sans-serif;" id="vc-hint">(press B to bookmark)</span>
-          </div>
-
-          <!-- Center: transport -->
-          <button class="vc-btn" id="vc-start" title="Go to start"><span class="material-symbols-rounded">first_page</span></button>
-          <button class="vc-btn" id="vc-back5" title="Back 5s"><span class="material-symbols-rounded">fast_rewind</span></button>
-          <button class="vc-btn" id="vc-back1" title="Back 1 frame"><span class="material-symbols-rounded">skip_previous</span></button>
-          <button class="vc-btn vc-play" id="vc-play" title="Play/Pause"><span class="material-symbols-rounded">play_arrow</span></button>
-          <button class="vc-btn" id="vc-stop" title="Stop"><span class="material-symbols-rounded">stop</span></button>
-          <button class="vc-btn" id="vc-fwd1" title="Forward 1 frame"><span class="material-symbols-rounded">skip_next</span></button>
-          <button class="vc-btn" id="vc-fwd5" title="Forward 5s"><span class="material-symbols-rounded">fast_forward</span></button>
-          <button class="vc-btn" id="vc-end" title="Go to end"><span class="material-symbols-rounded">last_page</span></button>
-          <span class="vc-time" id="vc-time">00:00.00 / 00:00.00</span>
-          <span id="vc-speed-label" style="font-size:11px;color:var(--vd-text-dim);min-width:28px;text-align:center;font-family:Jost,sans-serif;">1x</span>
-          <input type="range" id="vc-speed" title="Playback speed" min="0" max="6" step="1" value="3" style="width:60px;height:3px;cursor:pointer;accent-color:var(--vd-text-dim);">
-          <button class="vc-btn" id="vc-bookmark" title="Add bookmark (B)"><span class="material-symbols-rounded">bookmark_add</span></button>
-
-          <!-- Right: minimize + unload -->
-          <div style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:2px;">
-            <button class="vc-btn" id="vc-minimize" title="Minimize"><span class="material-symbols-rounded">expand_more</span></button>
-            <button class="vc-btn" id="vc-unload" title="Unload video" style="color:var(--vd-text-muted);"><span class="material-symbols-rounded">close</span></button>
-          </div>
+      <!-- Controls bar (hidden until video loaded) -->
+      <div id="video-controls" class="video-controls" style="display:none;">
+        <span class="vc-name" id="vc-name" style="color:var(--vd-text-muted);"></span>
+        <span class="toolbar-sep" style="height:14px;"></span>
+        <button class="vc-btn" id="vc-start" title="Go to start"><span class="material-symbols-rounded">first_page</span></button>
+        <button class="vc-btn" id="vc-back5" title="Back 5s"><span class="material-symbols-rounded">fast_rewind</span></button>
+        <button class="vc-btn" id="vc-back1" title="Back 1 frame"><span class="material-symbols-rounded">skip_previous</span></button>
+        <button class="vc-btn vc-play" id="vc-play" title="Play/Pause"><span class="material-symbols-rounded">play_arrow</span></button>
+        <button class="vc-btn" id="vc-stop" title="Stop"><span class="material-symbols-rounded">stop</span></button>
+        <button class="vc-btn" id="vc-fwd1" title="Forward 1 frame"><span class="material-symbols-rounded">skip_next</span></button>
+        <button class="vc-btn" id="vc-fwd5" title="Forward 5s"><span class="material-symbols-rounded">fast_forward</span></button>
+        <button class="vc-btn" id="vc-end" title="Go to end"><span class="material-symbols-rounded">last_page</span></button>
+        <span class="vc-time" id="vc-time">00:00.00 / 00:00.00</span>
+        <span id="vc-speed-label" style="font-size:11px;color:var(--vd-text-dim);min-width:28px;text-align:center;font-family:Jost,sans-serif;">1x</span>
+        <input type="range" id="vc-speed" title="Playback speed" min="0" max="6" step="1" value="3" style="width:60px;height:3px;cursor:pointer;accent-color:var(--vd-text-dim);">
+        <span class="toolbar-sep" style="height:14px;"></span>
+        <button class="vc-btn" id="vc-bookmark" title="Add bookmark (B)"><span class="material-symbols-rounded">bookmark_add</span></button>
+        <div id="vc-bookmark-btns" style="display:flex;align-items:center;gap:2px;">
+          <span style="font-size:10px;color:var(--vd-text-muted);font-family:Jost,sans-serif;">press B to bookmark</span>
         </div>
-
-        <!-- Timeline: filmstrip + scrubber + markers -->
-        <div class="video-timeline" id="video-filmstrip"></div>
+        <div style="position:absolute;right:8px;top:0;bottom:0;display:flex;align-items:center;gap:2px;">
+          <button class="vc-btn" id="vc-minimize" title="Minimize filmstrip"><span class="material-symbols-rounded">expand_more</span></button>
+          <button class="vc-btn" id="vc-unload" title="Unload video" style="color:var(--vd-text-muted);"><span class="material-symbols-rounded">close</span></button>
+        </div>
       </div>
+
+      <!-- Filmstrip timeline (hidden until video loaded) -->
+      <div class="video-timeline" id="video-filmstrip" style="display:none;"></div>
     </div>
 
     <!-- Video file input (hidden) -->

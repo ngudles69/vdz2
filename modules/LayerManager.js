@@ -7,23 +7,26 @@ import * as THREE from 'three';
  * independent visibility/opacity state, and EventBus integration.
  */
 
-const Z_BACKGROUND = 0;
-const Z_IMAGE      = 200;
-const Z_VIDEO      = 300;
-const Z_STITCHES   = 400;
+const Z_BACKGROUND  = 0;
+const Z_IMAGE       = 200;
+const Z_VIDEO       = 300;
+const Z_STITCHES    = 400;
+const Z_INDICATORS  = 1500;
 
 const LAYER_DEFS = [
-  { name: 'background', z: Z_BACKGROUND, label: 'Background', defaultOpacity: 1.0 },
-  { name: 'image',      z: Z_IMAGE,      label: 'Image',      defaultOpacity: 0.3 },
-  { name: 'video',      z: Z_VIDEO,      label: 'Video',      defaultOpacity: 1.0 },
-  { name: 'stitches',   z: Z_STITCHES,   label: 'Stitches',   defaultOpacity: 1.0 },
+  { name: 'background', z: Z_BACKGROUND,  label: 'Background', defaultOpacity: 1.0 },
+  { name: 'image',      z: Z_IMAGE,       label: 'Image',      defaultOpacity: 0.3 },
+  { name: 'video',      z: Z_VIDEO,       label: 'Video',      defaultOpacity: 1.0 },
+  { name: 'stitches',   z: Z_STITCHES,    label: 'Stitches',   defaultOpacity: 1.0 },
+  { name: 'indicators', z: Z_INDICATORS,  label: 'Indicators', defaultOpacity: 1.0 },
 ];
 
 class LayerManager {
-  static Z_BACKGROUND = Z_BACKGROUND;
-  static Z_IMAGE      = Z_IMAGE;
-  static Z_VIDEO      = Z_VIDEO;
-  static Z_STITCHES   = Z_STITCHES;
+  static Z_BACKGROUND  = Z_BACKGROUND;
+  static Z_IMAGE       = Z_IMAGE;
+  static Z_VIDEO       = Z_VIDEO;
+  static Z_STITCHES    = Z_STITCHES;
+  static Z_INDICATORS  = Z_INDICATORS;
 
   /** @type {import('../core/EventBus.js').EventBus} */
   #bus;

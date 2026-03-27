@@ -488,23 +488,17 @@ class TransformControls {
     const origH = b.maxY - b.minY;
     if (origW < 1 || origH < 1) return;
 
-    // Snap the dragged point if snap is on
+    // Snap the dragged corner to nearest grid intersection
     let px = wp.x, py = wp.y;
     if (snapToGrid) {
       px = Math.round(px / gridSpacing) * gridSpacing;
       py = Math.round(py / gridSpacing) * gridSpacing;
     }
 
-    let anchor, scaleFactor;
-
+    let anchor;
     if (fromCenter) {
-      // Ctrl held: resize from center
       anchor = { x: b.cx, y: b.cy };
-      const distX = Math.abs(px - b.cx) * 2;
-      const distY = Math.abs(py - b.cy) * 2;
-      scaleFactor = Math.max(0.1, Math.min(distX / origW, distY / origH));
     } else {
-      // Normal: resize from opposite corner
       const anchors = [
         { x: b.maxX, y: b.maxY },
         { x: b.minX, y: b.maxY },
@@ -512,12 +506,16 @@ class TransformControls {
         { x: b.maxX, y: b.minY },
       ];
       anchor = anchors[cornerIdx];
-      const newW = Math.abs(px - anchor.x);
-      const newH = Math.abs(py - anchor.y);
-      scaleFactor = Math.max(0.1, Math.min(newW / origW, newH / origH));
     }
 
-    this.#target.applyResize(scaleFactor, anchor);
+    let newW = Math.abs(px - anchor.x);
+    let newH = Math.abs(py - anchor.y);
+    if (fromCenter) { newW *= 2; newH *= 2; }
+
+    const scaleX = Math.max(0.1, newW / origW);
+    const scaleY = Math.max(0.1, newH / origH);
+
+    this.#target.applyResize(scaleX, scaleY, anchor);
     this.#syncBoundsFromTarget();
   }
 

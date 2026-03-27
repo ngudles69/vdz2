@@ -239,13 +239,13 @@ class SelectTool extends Tool {
           const mesh = vidOverlay.getMesh();
           if (!mesh) return;
           if (move) mesh.position.set(move.newPos.x, move.newPos.y, 0);
-          if (scl) mesh.scale.set(scl.newScale, scl.newScale, 1);
+          if (scl) mesh.scale.set(scl.newScaleX, scl.newScaleY, 1);
         },
         undo() {
           const mesh = vidOverlay.getMesh();
           if (!mesh) return;
           if (move) mesh.position.set(move.oldPos.x, move.oldPos.y, 0);
-          if (scl) mesh.scale.set(scl.oldScale, scl.oldScale, 1);
+          if (scl) mesh.scale.set(scl.oldScaleX, scl.oldScaleY, 1);
         },
         get description() { return 'Transform video frame'; },
       };

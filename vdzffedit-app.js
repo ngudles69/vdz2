@@ -753,6 +753,16 @@ bus.on('space:tap', () => {
 // B key = add bookmark
 keyboard.register({ key: 'B', label: 'Add bookmark', category: 'video', action: () => videoZone.addBookmark() });
 
+// Delete selected bookmark (only when no stitches selected)
+keyboard.register({ key: 'X', label: 'Delete bookmark', category: 'video',
+  when: () => !selectionManager.hasSelection && videoZone.hasSelectedBookmark,
+  action: () => videoZone.deleteSelectedBookmark(),
+});
+keyboard.register({ key: 'Delete', label: 'Delete bookmark', category: 'video',
+  when: () => !selectionManager.hasSelection && videoZone.hasSelectedBookmark,
+  action: () => videoZone.deleteSelectedBookmark(),
+});
+
 toast('Freeform editor ready');
 
 window.__vdz = {
