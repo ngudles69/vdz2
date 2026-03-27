@@ -61,7 +61,30 @@ class SelectTool extends Tool {
       }
     }
 
-    // 3. Image hit test (check if image layer is unlocked and visible)
+    // 3. Video frame hit test
+    const vidOverlay = this.manager?.videoOverlay;
+    if (vidOverlay && vidOverlay.hasVideo) {
+      const videoVisible = this.#layerManager ? this.#layerManager.isVisible('video') : true;
+      if (videoVisible) {
+        const vp = this.manager.viewport;
+        const vidMesh = vidOverlay.getMesh();
+        if (vidMesh) {
+          const hits = vp.raycast(e.clientX, e.clientY, [vidMesh]);
+          if (hits.length > 0) {
+            this.selection?.deselectAll();
+            this.#setVideoTarget();
+            this.transform.startDrag('move', wp);
+            this.#isDragging = true;
+            this.#dragType = 'transform';
+            this.#cursor = 'move';
+            this.manager.disableControls();
+            return true;
+          }
+        }
+      }
+    }
+
+    // 4. Image hit test (check if image layer is unlocked and visible)
     const img = this.#imageOverlay;
     if (img && img.hasImage && !this.imageLocked) {
       const imageVisible = this.#layerManager ? this.#layerManager.isVisible('image') : true;
@@ -149,8 +172,8 @@ class SelectTool extends Tool {
       if (this.selection?.hasSelection) {
         this.selection.deselectAll();
       }
-      // Also clear image target if active
-      if (this.transform?.target?.imageOverlay) {
+      // Clear any overlay target (image or video)
+      if (this.transform?.target?.imageOverlay || this.transform?.target?.videoOverlay) {
         this.transform.clearTarget();
       }
     }
@@ -186,6 +209,13 @@ class SelectTool extends Tool {
     }
   }
 
+  #setVideoTarget() {
+    const target = this.manager?.videoTarget;
+    if (target && this.transform) {
+      this.transform.setTarget(target);
+    }
+  }
+
   // ---- Transform commit ----
 
   #commitTransform() {
@@ -193,8 +223,33 @@ class SelectTool extends Tool {
     if (!result || !this.history) return;
 
     const isImageTransform = this.transform.target?.imageOverlay != null;
+    const isVideoTransform = this.transform.target?.videoOverlay != null;
 
-    if (isImageTransform) {
+    if (isVideoTransform) {
+      // Video transform undo
+      const vidOverlay = this.transform.target.videoOverlay;
+      const move = result.moves?.[0];
+      const scl = result.scales?.[0];
+
+      const cmd = {
+        _first: true,
+        execute() {
+          if (this._first) { this._first = false; return; }
+          const mesh = vidOverlay.getMesh();
+          if (!mesh) return;
+          if (move) mesh.position.set(move.newPos.x, move.newPos.y, 0);
+          if (scl) mesh.scale.set(scl.newScale, scl.newScale, 1);
+        },
+        undo() {
+          const mesh = vidOverlay.getMesh();
+          if (!mesh) return;
+          if (move) mesh.position.set(move.oldPos.x, move.oldPos.y, 0);
+          if (scl) mesh.scale.set(scl.oldScale, scl.oldScale, 1);
+        },
+        get description() { return 'Transform video frame'; },
+      };
+      this.history.execute(cmd);
+    } else if (isImageTransform) {
       // Image transform undo
       const imgOverlay = this.transform.target.imageOverlay;
       const move = result.moves?.[0];

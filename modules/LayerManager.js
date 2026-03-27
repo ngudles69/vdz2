@@ -9,17 +9,20 @@ import * as THREE from 'three';
 
 const Z_BACKGROUND = 0;
 const Z_IMAGE      = 200;
+const Z_VIDEO      = 300;
 const Z_STITCHES   = 400;
 
 const LAYER_DEFS = [
   { name: 'background', z: Z_BACKGROUND, label: 'Background', defaultOpacity: 1.0 },
   { name: 'image',      z: Z_IMAGE,      label: 'Image',      defaultOpacity: 0.3 },
+  { name: 'video',      z: Z_VIDEO,      label: 'Video',      defaultOpacity: 1.0 },
   { name: 'stitches',   z: Z_STITCHES,   label: 'Stitches',   defaultOpacity: 1.0 },
 ];
 
 class LayerManager {
   static Z_BACKGROUND = Z_BACKGROUND;
   static Z_IMAGE      = Z_IMAGE;
+  static Z_VIDEO      = Z_VIDEO;
   static Z_STITCHES   = Z_STITCHES;
 
   /** @type {import('../core/EventBus.js').EventBus} */

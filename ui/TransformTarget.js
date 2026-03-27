@@ -115,6 +115,8 @@ class StitchTransformTarget {
     return this.#selectionManager.selectedArray.length > 0;
   }
 
+  get canRotate() { return true; }
+
   /** Snapshot state before a drag begins */
   snapshot() {
     this.#startPositions.clear();
@@ -238,6 +240,8 @@ class ImageTransformTarget {
     return this.getBounds();
   }
 
+  get canRotate() { return true; }
+
   isActive() {
     return this.#imageOverlay.hasImage;
   }
@@ -295,4 +299,91 @@ class ImageTransformTarget {
   get imageOverlay() { return this.#imageOverlay; }
 }
 
-export { StitchTransformTarget, ImageTransformTarget };
+// ============================================================
+// VideoTransformTarget
+// ============================================================
+
+class VideoTransformTarget {
+
+  #videoOverlay;
+
+  #startPos = null;
+  #startScale = null;
+  #startRotation = 0;
+
+  constructor(videoOverlay) {
+    this.#videoOverlay = videoOverlay;
+  }
+
+  getBounds() {
+    const mesh = this.#videoOverlay.getMesh();
+    if (!mesh) return null;
+
+    const geom = mesh.geometry;
+    const halfW = (geom.parameters.width * mesh.scale.x) / 2;
+    const halfH = (geom.parameters.height * mesh.scale.y) / 2;
+    const cx = mesh.position.x;
+    const cy = mesh.position.y;
+
+    return { minX: cx - halfW, minY: cy - halfH, maxX: cx + halfW, maxY: cy + halfH };
+  }
+
+  getBoundsUnrotated(_groupRotation) {
+    return this.getBounds();
+  }
+
+  isActive() {
+    return this.#videoOverlay.hasVideo;
+  }
+
+  snapshot() {
+    const mesh = this.#videoOverlay.getMesh();
+    if (!mesh) return;
+    this.#startPos = { x: mesh.position.x, y: mesh.position.y };
+    this.#startScale = { x: mesh.scale.x, y: mesh.scale.y };
+    this.#startRotation = mesh.rotation.z;
+  }
+
+  applyMove(dx, dy) {
+    const mesh = this.#videoOverlay.getMesh();
+    if (!mesh || !this.#startPos) return;
+    mesh.position.x = this.#startPos.x + dx;
+    mesh.position.y = this.#startPos.y + dy;
+  }
+
+  get canRotate() { return false; }
+
+  applyRotate() {
+    // Video frame cannot rotate
+  }
+
+  applyResize(scaleFactor, anchor) {
+    const mesh = this.#videoOverlay.getMesh();
+    if (!mesh || !this.#startPos || !this.#startScale) return;
+
+    const newScaleX = Math.max(0.05, this.#startScale.x * scaleFactor);
+    const newScaleY = Math.max(0.05, this.#startScale.y * scaleFactor);
+    mesh.scale.set(newScaleX, newScaleY, 1);
+
+    const rx = this.#startPos.x - anchor.x;
+    const ry = this.#startPos.y - anchor.y;
+    mesh.position.x = anchor.x + rx * scaleFactor;
+    mesh.position.y = anchor.y + ry * scaleFactor;
+  }
+
+  getResult() {
+    const mesh = this.#videoOverlay.getMesh();
+    if (!mesh || !this.#startPos) return { moves: [], rotations: [], scales: [] };
+
+    const id = '__video__';
+    return {
+      moves: [{ id, oldPos: { ...this.#startPos }, newPos: { x: mesh.position.x, y: mesh.position.y } }],
+      rotations: [{ id, oldRot: this.#startRotation, newRot: mesh.rotation.z }],
+      scales: [{ id, oldScale: this.#startScale.x, newScale: mesh.scale.x }],
+    };
+  }
+
+  get videoOverlay() { return this.#videoOverlay; }
+}
+
+export { StitchTransformTarget, ImageTransformTarget, VideoTransformTarget };

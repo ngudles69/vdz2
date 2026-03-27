@@ -44,6 +44,8 @@ class ToolManager {
   layerManager;
   stitchTarget;
   imageTarget;
+  videoTarget;
+  videoOverlay;
 
   /** @type {object} OrbitControls reference */
   #controls;
@@ -83,6 +85,8 @@ class ToolManager {
     this.layerManager = opts.layerManager;
     this.stitchTarget = opts.stitchTarget;
     this.imageTarget = opts.imageTarget;
+    this.videoTarget = opts.videoTarget;
+    this.videoOverlay = opts.videoOverlay;
     this.#controls = opts.controls;
     this.#canvas = opts.canvas;
     this.#screenToWorld = opts.screenToWorld;
@@ -146,10 +150,15 @@ class ToolManager {
     });
     document.addEventListener('keyup', (e) => {
       if (e.code === 'Space') {
+        const didPan = this.#spacePanning;
         this.#spaceHeld = false;
         this.#spacePanning = false;
         if (this.#activeTool) {
           this.#canvas.style.cursor = this.#activeTool.getCursor();
+        }
+        // Space tap (no drag) = toggle play/pause
+        if (!didPan) {
+          this.bus.emit('space:tap');
         }
       }
     });

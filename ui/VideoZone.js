@@ -146,11 +146,11 @@ class VideoZone {
     document.getElementById('vc-fwd5').addEventListener('click', () => this.#seekRel(5));
     document.getElementById('vc-back1').addEventListener('click', () => this.#seekFrame(-1));
     document.getElementById('vc-fwd1').addEventListener('click', () => this.#seekFrame(1));
-    document.getElementById('vc-play').addEventListener('click', () => this.#togglePlay());
+    document.getElementById('vc-play').addEventListener('click', () => this.togglePlay());
     document.getElementById('vc-stop').addEventListener('click', () => this.#stop());
   }
 
-  #togglePlay() {
+  togglePlay() {
     if (this.#playing) {
       this.#video.pause();
       this.#playing = false;

@@ -13,7 +13,8 @@ import { StitchStore } from './modules/StitchStore.js';
 import { StitchRenderer } from './modules/StitchRenderer.js';
 import { SelectionManager } from './ui/SelectionManager.js';
 import { TransformControls } from './ui/TransformControls.js';
-import { StitchTransformTarget, ImageTransformTarget } from './ui/TransformTarget.js';
+import { StitchTransformTarget, ImageTransformTarget, VideoTransformTarget } from './ui/TransformTarget.js';
+import { VideoOverlay } from './modules/VideoOverlay.js';
 import { SetManager } from './modules/SetManager.js';
 import { SetBar } from './ui/SetBar.js';
 import { ToolManager } from './ui/tools/ToolManager.js';
@@ -55,6 +56,8 @@ viewport.setLayerManager(layerManager);
 const imageOverlay = new ImageOverlay(bus, layerManager);
 imageOverlay.setCamera(viewport.camera);
 
+const videoOverlay = new VideoOverlay(bus, layerManager);
+
 const layerPanel = new LayerPanel(bus, layerManager, viewport, imageOverlay, history);
 
 // ============================================================
@@ -77,6 +80,7 @@ const transformControls = new TransformControls(bus, viewport.scene, viewport.ca
 const stitchTarget = new StitchTransformTarget(stitchStore, selectionManager);
 stitchTarget.setRenderer(stitchRenderer);
 const imageTarget = new ImageTransformTarget(imageOverlay);
+const videoTarget = new VideoTransformTarget(videoOverlay);
 
 const setManager = new SetManager(bus, stitchStore);
 stitchRenderer.setSetManager(setManager);
@@ -133,6 +137,8 @@ const toolManager = new ToolManager({
   layerManager,
   stitchTarget,
   imageTarget,
+  videoTarget,
+  videoOverlay,
   controls: viewport.controls,
   canvas: viewport.domElement,
   screenToWorld: viewport.screenToWorld.bind(viewport),
@@ -730,6 +736,20 @@ state.watch('stitchScale', saveSettings);
 
 const videoZone = new VideoZone(bus, state);
 
+// When video loads, show the frame in Three.js
+bus.on('video:loaded', ({ width, height }) => {
+  videoOverlay.setVideo(videoZone.videoElement, width, height);
+});
+bus.on('video:unloaded', () => {
+  videoOverlay.removeVideo();
+  transformControls.clearTarget();
+});
+
+// Spacebar tap = toggle video play/pause
+bus.on('space:tap', () => {
+  if (videoZone.hasVideo) videoZone.togglePlay();
+});
+
 // B key = add bookmark
 keyboard.register({ key: 'B', label: 'Add bookmark', category: 'video', action: () => videoZone.addBookmark() });
 
@@ -739,7 +759,7 @@ window.__vdz = {
   bus, state, history, viewport, layerManager, imageOverlay,
   stitchLibrary, stitchAtlas, stitchPicker,
   stitchStore, stitchRenderer, selectionManager, transformControls,
-  toolManager, keyboard, setManager, textToolbar, videoZone,
+  toolManager, keyboard, setManager, textToolbar, videoZone, videoOverlay,
 };
 
 console.log('[VDZ] Freeform editor initialized');

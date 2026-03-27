@@ -307,18 +307,23 @@ class TransformControls {
       this.#handles[i].scale.set(s, s, 1);
     }
 
-    // Rotation line
-    const topLx = (lMinX + lMaxX) / 2;
-    const topLy = lMaxY;
-    const rlPos = this.#rotLine.geometry.getAttribute('position');
-    rlPos.setXYZ(0, topLx, topLy, 0);
-    rlPos.setXYZ(1, topLx, topLy + rotOff, 0);
-    rlPos.needsUpdate = true;
+    // Rotation line + handle (hidden if target doesn't support rotation)
+    const showRotation = this.#target?.canRotate ?? true;
+    this.#rotLine.visible = showRotation;
+    this.#rotHandle.visible = showRotation;
 
-    // Rotation handle
-    const rs = s * 3;
-    this.#rotHandle.position.set(topLx, topLy + rotOff, 0);
-    this.#rotHandle.scale.set(rs, rs, 1);
+    if (showRotation) {
+      const topLx = (lMinX + lMaxX) / 2;
+      const topLy = lMaxY;
+      const rlPos = this.#rotLine.geometry.getAttribute('position');
+      rlPos.setXYZ(0, topLx, topLy, 0);
+      rlPos.setXYZ(1, topLx, topLy + rotOff, 0);
+      rlPos.needsUpdate = true;
+
+      const rs = s * 3;
+      this.#rotHandle.position.set(topLx, topLy + rotOff, 0);
+      this.#rotHandle.scale.set(rs, rs, 1);
+    }
   }
 
   // ---- Hit testing ----
@@ -343,11 +348,13 @@ class TransformControls {
     const s = (this.#handleSize * 1.5) / this.#zoom;
     const rotOff = this.#rotHandleOffset / this.#zoom;
 
-    // Rotation handle
-    const rotX = (minX + maxX) / 2;
-    const rotY = maxY + rotOff;
-    if (Math.abs(lx - rotX) < s * 2 && Math.abs(ly - rotY) < s * 2) {
-      return 'rotate';
+    // Rotation handle (only if target supports rotation)
+    if (this.#target?.canRotate ?? true) {
+      const rotX = (minX + maxX) / 2;
+      const rotY = maxY + rotOff;
+      if (Math.abs(lx - rotX) < s * 2 && Math.abs(ly - rotY) < s * 2) {
+        return 'rotate';
+      }
     }
 
     // Corner handles
@@ -489,6 +496,21 @@ class TransformControls {
     const scaleFactor = Math.max(0.1, Math.min(newW / origW, newH / origH));
 
     this.#target.applyResize(scaleFactor, anchor);
+
+    // Update bounds to follow the resize
+    const sw = origW * scaleFactor;
+    const sh = origH * scaleFactor;
+    const newMinX = anchor.x < b.cx ? anchor.x : anchor.x - sw;
+    const newMinY = anchor.y < b.cy ? anchor.y : anchor.y - sh;
+    this.#bounds = {
+      minX: newMinX,
+      minY: newMinY,
+      maxX: newMinX + sw,
+      maxY: newMinY + sh,
+      cx: newMinX + sw / 2,
+      cy: newMinY + sh / 2,
+    };
+    this.#updateLayout();
   }
 
   /**
@@ -502,7 +524,7 @@ class TransformControls {
     if (handleType === 'rotate') return 'grab';
     if (handleType.startsWith('resize-')) {
       const i = parseInt(handleType.split('-')[1]);
-      return (i === 0 || i === 2) ? 'nwse-resize' : 'nesw-resize';
+      return (i === 0 || i === 2) ? 'nesw-resize' : 'nwse-resize';
     }
     return 'default';
   }
