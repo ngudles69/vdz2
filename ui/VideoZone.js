@@ -93,8 +93,7 @@ class VideoZone {
       this.#showActive();
       this.#bookmarks = [];
       this.#renderBookmarks();
-      // Delay filmstrip so scrubber is visible first for debugging
-      setTimeout(() => this.#extractFilmstrip(), 2000);
+      this.#extractFilmstrip();
       this.#bus.emit('video:loaded', {
         duration: this.#video.duration,
         width: this.#video.videoWidth,
