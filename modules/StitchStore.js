@@ -104,6 +104,8 @@ class StitchStore {
     if (props.gridSnapped !== undefined) stitch.gridSnapped = props.gridSnapped;
     if (props.gridLinked !== undefined) stitch.gridLinked = props.gridLinked;
     if (props.gridCoords !== undefined) stitch.gridCoords = props.gridCoords ? { ...props.gridCoords } : null;
+    if (props.text !== undefined) stitch.text = props.text;
+    if (props.textStyle !== undefined) stitch.textStyle = props.textStyle ? { ...props.textStyle } : null;
 
     this.#bus.emit('stitch-store:updated', { stitch });
     return stitch;
@@ -134,6 +136,8 @@ class StitchStore {
       if (props.gridSnapped !== undefined) stitch.gridSnapped = props.gridSnapped;
       if (props.gridLinked !== undefined) stitch.gridLinked = props.gridLinked;
       if (props.gridCoords !== undefined) stitch.gridCoords = props.gridCoords ? { ...props.gridCoords } : null;
+      if (props.text !== undefined) stitch.text = props.text;
+      if (props.textStyle !== undefined) stitch.textStyle = props.textStyle ? { ...props.textStyle } : null;
 
       updated.push(stitch);
     }
