@@ -482,6 +482,7 @@ btnGridToggle.addEventListener('click', () => {
   const on = !viewport.gridVisible;
   viewport.setGridVisible(on);
   btnGridToggle.classList.toggle('active', on);
+  saveSettings();
   document.getElementById('setting-grid').checked = on;
 });
 
@@ -490,6 +491,7 @@ btnRulerToggle.addEventListener('click', () => {
   viewport.setRulerVisible(on);
   btnRulerToggle.classList.toggle('active', on);
   document.getElementById('setting-ruler').checked = on;
+  saveSettings();
 });
 
 // --- Theme toggle ---
@@ -592,21 +594,23 @@ viewport.domElement.addEventListener('pointerdown', () => {
   settingsPanel.classList.remove('open');
 });
 
-document.getElementById('setting-grid').addEventListener('change', (e) => viewport.setGridVisible(e.target.checked));
+document.getElementById('setting-grid').addEventListener('change', (e) => { viewport.setGridVisible(e.target.checked); saveSettings(); });
 document.getElementById('setting-grid-size').addEventListener('change', (e) => {
   const s = parseInt(e.target.value);
   viewport.setGridSize(s);
   stitchStore.reflowGrid(s);
+  saveSettings();
 });
-document.getElementById('setting-grid-opacity').addEventListener('change', (e) => viewport.setGridOpacity(parseInt(e.target.value) / 100));
-document.getElementById('setting-grid-color').addEventListener('input', (e) => viewport.setGridColor(e.target.value));
-document.getElementById('setting-ruler').addEventListener('change', (e) => viewport.setRulerVisible(e.target.checked));
-document.getElementById('setting-ruler-opacity').addEventListener('change', (e) => viewport.setRulerOpacity(parseInt(e.target.value) / 100));
-document.getElementById('setting-stitch-scale').addEventListener('change', (e) => state.set('stitchScale', parseFloat(e.target.value)));
+document.getElementById('setting-grid-opacity').addEventListener('change', (e) => { viewport.setGridOpacity(parseInt(e.target.value) / 100); saveSettings(); });
+document.getElementById('setting-grid-color').addEventListener('input', (e) => { viewport.setGridColor(e.target.value); saveSettings(); });
+document.getElementById('setting-ruler').addEventListener('change', (e) => { viewport.setRulerVisible(e.target.checked); saveSettings(); });
+document.getElementById('setting-ruler-opacity').addEventListener('change', (e) => { viewport.setRulerOpacity(parseInt(e.target.value) / 100); saveSettings(); });
+document.getElementById('setting-stitch-scale').addEventListener('change', (e) => { state.set('stitchScale', parseFloat(e.target.value)); saveSettings(); });
 document.getElementById('setting-sel-color').addEventListener('input', (e) => {
   state.set('selectionColor', e.target.value);
   stitchRenderer.setSelectionColor(e.target.value);
   transformControls.setSelectionColor(e.target.value);
+  saveSettings();
 });
 
 // ============================================================
@@ -618,6 +622,88 @@ const layerPanelEl = document.getElementById('layer-panel');
 btnLayers.addEventListener('click', () => {
   layerPanelEl.style.display = layerPanelEl.style.display !== 'none' ? 'none' : 'block';
 });
+
+// ============================================================
+// Settings persistence (localStorage)
+// ============================================================
+
+const SETTINGS_KEY = 'vdz-settings';
+
+function saveSettings() {
+  const settings = {
+    grid: viewport.gridVisible,
+    gridSize: viewport.gridSpacing,
+    gridOpacity: viewport.gridOpacity,
+    ruler: viewport.rulerVisible,
+    rulerOpacity: viewport.rulerOpacity,
+    snap: !!state.get('gridSnap'),
+    link: !!state.get('gridLink'),
+    selectionColor: state.get('selectionColor') || '#ff69b4',
+    stitchScale: state.get('stitchScale') || 1,
+    background: viewport.backgroundType,
+  };
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+
+    if (s.grid !== undefined) {
+      viewport.setGridVisible(s.grid);
+      btnGridToggle.classList.toggle('active', s.grid);
+      document.getElementById('setting-grid').checked = s.grid;
+    }
+    if (s.gridSize !== undefined) {
+      viewport.setGridSize(s.gridSize);
+      document.getElementById('setting-grid-size').value = s.gridSize;
+    }
+    if (s.gridOpacity !== undefined) {
+      viewport.setGridOpacity(s.gridOpacity);
+      document.getElementById('setting-grid-opacity').value = Math.round(s.gridOpacity * 100);
+    }
+    if (s.ruler !== undefined) {
+      viewport.setRulerVisible(s.ruler);
+      btnRulerToggle.classList.toggle('active', s.ruler);
+      document.getElementById('setting-ruler').checked = s.ruler;
+    }
+    if (s.rulerOpacity !== undefined) {
+      viewport.setRulerOpacity(s.rulerOpacity);
+      document.getElementById('setting-ruler-opacity').value = Math.round(s.rulerOpacity * 100);
+    }
+    if (s.snap !== undefined) {
+      state.set('gridSnap', s.snap);
+      btnSnap.classList.toggle('active', s.snap);
+    }
+    if (s.link !== undefined) {
+      state.set('gridLink', s.link);
+      btnLinkGrid.classList.toggle('active', s.link);
+    }
+    if (s.selectionColor) {
+      state.set('selectionColor', s.selectionColor);
+      stitchRenderer.setSelectionColor(s.selectionColor);
+      transformControls.setSelectionColor(s.selectionColor);
+      document.getElementById('setting-sel-color').value = s.selectionColor;
+    }
+    if (s.stitchScale) {
+      state.set('stitchScale', s.stitchScale);
+      document.getElementById('setting-stitch-scale').value = s.stitchScale;
+    }
+    if (s.background) viewport.setBackground(s.background);
+  } catch {}
+}
+
+// Load on startup
+loadSettings();
+
+// Auto-save on changes
+bus.on('camera:zoom-changed', saveSettings);
+state.watch('gridSnap', saveSettings);
+state.watch('gridLink', saveSettings);
+state.watch('selectionColor', saveSettings);
+state.watch('stitchScale', saveSettings);
 
 // ============================================================
 // Init
