@@ -39,13 +39,13 @@ class VideoZone {
     this.#bus = bus;
     this.#state = state;
 
-    // Create video element (shown in preview area)
+    // Create hidden video element (no preview — filmstrip shows the content)
     this.#video = document.createElement('video');
     this.#video.preload = 'auto';
     this.#video.playsInline = true;
     this.#video.muted = true;
-    this.#video.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;';
-    document.getElementById('video-preview').appendChild(this.#video);
+    this.#video.style.display = 'none';
+    document.body.appendChild(this.#video);
 
     // DOM refs
     this.#zone = document.getElementById('video-zone');

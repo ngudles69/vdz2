@@ -337,24 +337,6 @@
       height: 32px;
     }
 
-    .video-preview {
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      width: 80px;
-      height: 60px;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 3;
-      border-top-right-radius: 4px;
-    }
-    .video-preview video {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
 
     .video-zone-empty {
       display: flex;
@@ -1035,20 +1017,15 @@
           <button class="vc-btn" id="vc-unload" title="Unload video" style="color:var(--vd-text-muted);"><span class="material-symbols-rounded">close</span></button>
         </div>
 
-        <!-- Filmstrip -->
-        <div class="video-filmstrip" id="video-filmstrip"></div>
+        <!-- Sections content -->
+        <div class="video-content" id="video-content"></div>
 
-        <!-- Scrubber (full width) -->
+        <!-- Scrubber + filmstrip (bottom) -->
         <div class="video-scrubber">
           <div class="scrubber-markers" id="scrubber-markers"></div>
           <input type="range" id="vc-scrubber" min="0" max="1000" value="0" step="1">
         </div>
-
-        <!-- Sections content (full width) -->
-        <div class="video-content" id="video-content"></div>
-
-        <!-- Video preview thumbnail (corner overlay) -->
-        <div class="video-preview" id="video-preview"></div>
+        <div class="video-filmstrip" id="video-filmstrip"></div>
       </div>
     </div>
 
