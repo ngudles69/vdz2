@@ -216,6 +216,11 @@ class TextTool extends Tool {
 
       this.history.execute(new this.#PlaceStampCommand(this.store, data));
       this.#pendingPos = null;
+
+      // Switch to select tool with the new text selected (Figma behavior)
+      this.manager.enableControls();
+      this.manager.setActive('select');
+      return;
     }
 
     this.manager.enableControls();
