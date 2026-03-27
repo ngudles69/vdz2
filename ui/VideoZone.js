@@ -95,6 +95,7 @@ class VideoZone {
       this.#showActive();
       this.#bookmarks = [];
       this.#renderBookmarks();
+      this.#extractFilmstrip();
       this.#bus.emit('video:loaded', {
         duration: this.#video.duration,
         width: this.#video.videoWidth,
@@ -239,6 +240,65 @@ class VideoZone {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`;
+  }
+
+  // ---- Filmstrip ----
+
+  async #extractFilmstrip() {
+    const container = document.getElementById('video-filmstrip');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const dur = this.#video.duration;
+    if (!dur || dur <= 0) return;
+
+    // Calculate how many frames we need based on container width
+    const containerWidth = container.clientWidth || 800;
+    const frameHeight = 48;
+    const aspect = this.#video.videoWidth / this.#video.videoHeight;
+    const frameWidth = Math.round(frameHeight * aspect);
+    const numFrames = Math.max(1, Math.ceil(containerWidth / frameWidth));
+
+    // Create a single canvas for the filmstrip
+    const canvas = document.createElement('canvas');
+    canvas.width = containerWidth;
+    canvas.height = frameHeight;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    // Use a separate video element for extraction so we don't disrupt playback
+    const extractor = document.createElement('video');
+    extractor.src = this.#video.src;
+    extractor.muted = true;
+    extractor.preload = 'auto';
+
+    await new Promise(resolve => {
+      extractor.addEventListener('loadeddata', resolve, { once: true });
+    });
+
+    const drawFrame = (index) => {
+      return new Promise(resolve => {
+        const time = (index / numFrames) * dur;
+        extractor.currentTime = time;
+
+        extractor.addEventListener('seeked', () => {
+          const x = Math.round((index / numFrames) * containerWidth);
+          const w = Math.round(((index + 1) / numFrames) * containerWidth) - x;
+          ctx.drawImage(extractor, x, 0, w, frameHeight);
+          resolve();
+        }, { once: true });
+      });
+    };
+
+    // Extract frames sequentially
+    for (let i = 0; i < numFrames; i++) {
+      await drawFrame(i);
+    }
+
+    // Clean up extractor
+    extractor.src = '';
   }
 
   // ---- Minimize / Expand ----

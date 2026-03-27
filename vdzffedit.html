@@ -331,7 +331,7 @@
       height: 42px;
     }
     .video-zone.expanded {
-      height: 160px;
+      height: 200px;
     }
     .video-zone.minimized {
       height: 32px;
@@ -421,6 +421,21 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       max-width: 200px;
+    }
+
+    .video-filmstrip {
+      flex-shrink: 0;
+      height: 48px;
+      padding: 0 12px;
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      overflow: hidden;
+      background: #0a0a0e;
+    }
+    .video-filmstrip canvas {
+      height: 100%;
+      flex-shrink: 0;
     }
 
     .video-scrubber {
@@ -1019,6 +1034,9 @@
           <button class="vc-btn" id="vc-minimize" title="Minimize"><span class="material-symbols-rounded">expand_more</span></button>
           <button class="vc-btn" id="vc-unload" title="Unload video" style="color:var(--vd-text-muted);"><span class="material-symbols-rounded">close</span></button>
         </div>
+
+        <!-- Filmstrip -->
+        <div class="video-filmstrip" id="video-filmstrip"></div>
 
         <!-- Scrubber (full width) -->
         <div class="video-scrubber">
