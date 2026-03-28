@@ -287,8 +287,9 @@ class VideoZone {
 
   #fmtTime(s) {
     const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(m).padStart(2, '0')}:${sec.toFixed(2).padStart(5, '0')}`;
+    const sec = Math.floor(s % 60);
+    const ms = Math.floor((s % 1) * 1000);
+    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
   }
 
   // ---- Filmstrip ----
@@ -452,7 +453,8 @@ class VideoZone {
       const pct = (time / dur) * 100;
       const marker = document.createElement('div');
       marker.className = 'scrubber-marker';
-      marker.style.left = `${pct}%`;
+      if (time > dur) marker.classList.add('scrubber-marker-invalid');
+      marker.style.left = `${Math.min(pct, 100)}%`;
 
       const label = document.createElement('div');
       label.className = 'scrubber-marker-label';
@@ -539,6 +541,12 @@ class VideoZone {
 
   /** @returns {boolean} */
   get hasVideo() { return !!this.#video.src && this.#video.duration > 0; }
+
+  /** @returns {number} Video duration in seconds, or 0 */
+  get duration() { return this.#video.duration || 0; }
+
+  /** @returns {string|null} Video filename */
+  get videoName() { return this.#videoName; }
 
   /** @returns {number[]} */
   get bookmarks() { return [...this.#bookmarks]; }

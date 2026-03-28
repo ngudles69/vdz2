@@ -183,7 +183,7 @@
       background: none;
       border: none;
       color: var(--vd-text-dim);
-      font-size: 22px;
+      font-size: 28px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -372,29 +372,29 @@
       border: none;
       color: var(--vd-text-dim);
       cursor: pointer;
-      width: 28px;
-      height: 28px;
+      width: 34px;
+      height: 34px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 3px;
-      font-size: 18px;
+      font-size: 28px;
       padding: 0;
       transition: color 0.1s;
     }
     .video-controls .vc-btn:hover { color: var(--vd-text); }
-    .video-controls .vc-btn.vc-play { font-size: 22px; }
+    .video-controls .vc-btn.vc-play { font-size: 28px; }
     .video-controls .vc-time {
       font-family: 'Jost', monospace;
-      font-size: 12px;
+      font-size: 18px;
       color: var(--vd-text-dim);
       margin: 0 8px;
       white-space: nowrap;
-      min-width: 90px;
+      min-width: 140px;
     }
     .video-controls .vc-spacer { flex: 1; }
     .video-controls .vc-name {
-      font-size: 11px;
+      font-size: 18px;
       color: var(--vd-text-muted);
       overflow: hidden;
       text-overflow: ellipsis;
@@ -489,6 +489,13 @@
       background: var(--vd-accent, #7c5cfc);
       border-radius: 0 0 3px 3px;
     }
+    .scrubber-marker-invalid {
+      background: var(--vd-error, #fc5c5c);
+    }
+    .scrubber-marker-invalid::after {
+      background: var(--vd-error, #fc5c5c);
+    }
+
     .scrubber-marker-label {
       position: absolute;
       top: 12px;
@@ -947,7 +954,13 @@
       <button id="btn-groups-toggle" class="toolbar-btn active" title="Toggle groups">
         <span class="material-symbols-rounded">ad_group</span>
       </button>
+      <button id="btn-clip-builder" class="toolbar-btn" title="Clip Builder (C)">
+        <span class="material-symbols-rounded">movie_edit</span>
+      </button>
       <span class="toolbar-spacer"></span>
+      <button id="btn-guides-toggle" class="toolbar-btn" title="Toggle grid &amp; indicators">
+        <span class="material-symbols-rounded">center_focus_strong</span>
+      </button>
       <button id="btn-grid-toggle" class="toolbar-btn" title="Toggle grid">
         <span class="material-symbols-rounded">grid_on</span>
       </button>

@@ -4,7 +4,7 @@
 
 A fast freeform stitch placement editor for crochet diagram creation. The user imports a reference image, places stitch symbols using a stamp/paint workflow, organizes stitches into numbered sets, and exports transparent PNGs for use in PDF instruction guides and as input for video generation. Core principle: speed — open the editor, stamp stitches row by row, tweak, export. Under a minute for simple patterns.
 
-Tech stack: Three.js (single rendering library), vanilla JS + ES modules. No frameworks until Phase 2 (React/Remotion for video generation only).
+Tech stack: Three.js (single rendering library), vanilla JS + ES modules. No frameworks, no build step.
 
 ## Architecture Notes
 
@@ -25,28 +25,27 @@ Key design decisions informing all phases:
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-**Macro-Phase 1: Core Editor + PNG Export (Phases 1-6)**
-The minimum viable tool — place stitches, organize into sets, export transparent PNGs. All core infrastructure exists, the stamp workflow is fast, and the export pipeline produces usable output for PDF guides and video overlays.
+**Macro-Phase 1: Core Editor (Phases 1-5) — DONE**
+The minimum viable tool — place stitches, organize into sets. All core infrastructure exists and the stamp workflow is fast.
 
-- [ ] **Phase 1: Project Scaffold + Core Infrastructure** - Three.js + vanilla JS shell, EventBus, State, HistoryManager, Toast, import maps
-- [ ] **Phase 2: Viewport + Layer System** - Orthographic canvas, pan/zoom, dot grid, rulers, background layer, image layer, stitch layer
-- [ ] **Phase 3: Stitch Library + Picker** - Port StitchLibrary and StitchAtlas from VDZ, stitch picker UI with preview window, rotation control
-- [ ] **Phase 4: Stamp Tool + Selection** - Click-to-place stamp workflow, ruler/grid snapping, selection, multi-select, move, rotate individual/group
-- [ ] **Phase 5: Set System** - Assign stitches to numbered sets, reorder sets, reorder within sets, color per set, visual indicators
-- [ ] **Phase 6: PNG Export** - Full pattern, cumulative per-set, individual set — all transparent background
+- [x] **Phase 1: Project Scaffold + Core Infrastructure** - Three.js + vanilla JS shell, EventBus, State, HistoryManager, Toast, import maps
+- [x] **Phase 2: Viewport + Layer System** - Orthographic canvas, pan/zoom, dot grid, rulers, background layer, image layer, stitch layer
+- [x] **Phase 3: Stitch Library + Picker** - Port StitchLibrary and StitchAtlas from VDZ, stitch picker UI with preview window, rotation control
+- [x] **Phase 4: Stamp Tool + Selection** - Click-to-place stamp workflow, ruler/grid snapping, selection, multi-select, move, rotate individual/group
+- [x] **Phase 5: Set System** - Assign stitches to numbered sets, reorder sets, reorder within sets, color per set, visual indicators
 
-**Macro-Phase 2: Video Generation (Phases 7-9)**
-React/Remotion added as a separate entry point. Animated video output with blink/walk-forward effects, loopable clips, and a sync tool for timing overlays to teaching videos.
+**Macro-Phase 2: Video Sync Infrastructure (Phase 6) — DONE**
+Video playback, timeline, filmstrip, and bookmark system for syncing stitch overlays to teaching videos.
 
-- [ ] **Phase 7: Remotion Integration** - React wrapper for stitch rendering, composition definitions, JSON export for stitch data
-- [ ] **Phase 8: Loopable Clip Export** - Per-set transparent video clips with blink and walk-forward animation
-- [ ] **Phase 9: Sync Page** - Separate page: load video, scrub, bookmark set transitions, render timed overlay
+- [x] **Phase 6: Video Zone + Sync Infrastructure** - Video loading/playback, transport controls, speed slider, VideoOverlay (3D mesh), filmstrip timeline with frame extraction, bookmark system (add/drag/delete), filmstrip converter tool
 
-**Macro-Phase 3: Mesh Editor Mode (future, not scheduled)**
-Port the mesh editor from the original VDZ repo as a second mode within this project. Both modes share stitch library, layer system, and export pipeline.
+**Macro-Phase 3: Video Output (Phases 7-10)**
+Build the clip creation interface, generate overlay clips, optimize, and package for distribution.
 
-- [ ] **Phase 10: Port Mesh Editor** - Bring back MeshEngine, PrimitiveLibrary, mesh-specific tools as a second mode
-- [ ] **Phase 11: Shared Foundation** - Unify stitch library, layer system, export pipeline across both modes
+- [ ] **Phase 7: Clip Builder Interface** - TBD
+- [ ] **Phase 8: Clip Generator** - TBD
+- [ ] **Phase 9: Optimization - Interface/Code** - TBD
+- [ ] **Phase 10: Packaging and Installation Procedures** - TBD
 
 ## Phase Details
 
@@ -137,67 +136,51 @@ Plans:
 - [ ] 05-02: Set ordering, within-set sequencing, color assignment, blink color pairs
 - [ ] 05-03: Visual indicators (color overlay, number labels), set-based stitch filtering
 
-### Phase 6: PNG Export
-**Goal**: The user can export transparent PNGs of their stitch diagram in three modes: full pattern (all stitches), cumulative per-set (progressive build-up), and individual set (each set isolated). All exports have transparent backgrounds with stitches at their exact canvas positions. These PNGs are ready for use in PDF instruction guides and as transparent overlays in video editing tools like CapCut.
+### Phase 6: Video Zone + Sync Infrastructure (DONE)
+**Goal**: Video playback integrated into the editor with a filmstrip timeline, transport controls, and a bookmark system for marking set transitions in a teaching video.
 **Depends on**: Phase 5
-**Success Criteria** (what must be TRUE):
-  1. User can export a full pattern PNG — all stitches visible, transparent background
-  2. User can export cumulative per-set PNGs — progressive build-up (set 1 only; sets 1+2; sets 1+2+3; etc.)
-  3. User can export individual set PNGs — each set isolated on transparent background
-  4. All exports preserve exact canvas positions (stitches appear in the same relative layout)
-  5. Export resolution is configurable or defaults to a reasonable size for print/video use
-  6. Background and image layers are hidden during export — only stitches render
-**Plans**: TBD
+**What was built**:
+  - Video loading + playback with full transport controls (start, back/fwd 5s, back/fwd 1 frame, play/pause, stop)
+  - Speed slider (0.25x–2x)
+  - VideoOverlay — video rendered as 3D mesh in Three.js canvas (z=300), movable and resizable
+  - Filmstrip timeline — on-the-fly frame extraction, cover-cropped thumbnails, 56px strip
+  - Bookmark system — add (B key), drag to reposition, right-click delete, numbered markers, sections derived from bookmarks
+  - Filmstrip converter tool (Python + shell script using ffmpeg)
 
-Plans:
-- [ ] 06-01: Export engine — layer hiding, Three.js toDataURL, resolution control
-- [ ] 06-02: ExportPanel UI — full/cumulative/individual modes, download triggers
-- [ ] 06-03: Batch export (zip of all cumulative + individual PNGs)
-
-### Phase 7: Remotion Integration
-**Goal**: A React/Remotion entry point exists alongside the vanilla JS editor. Stitch data can be exported as JSON and consumed by Remotion compositions to render animated video frames. This is a separate build target — the editor itself remains vanilla JS.
+### Phase 7: Clip Builder Interface
+**Goal**: TBD
 **Depends on**: Phase 6
-**Success Criteria** (what must be TRUE):
-  1. Stitch project data exports as JSON (positions, sets, colors, sequence) consumable by Remotion
-  2. A Remotion composition renders stitch symbols from the JSON data
-  3. The Remotion entry point is separate from the editor — does not affect editor bundle or load time
 **Plans**: TBD
 
-### Phase 8: Loopable Clip Export
-**Goal**: Each set can be exported as a seamless looping transparent video clip. Each clip shows all previous sets static with the current set blinking or walk-forward animating. User lays clips sequentially on CapCut timeline and trims each to match narration.
+### Phase 8: Clip Generator
+**Goal**: TBD
 **Depends on**: Phase 7
-**Success Criteria** (what must be TRUE):
-  1. Each set exports as a looping transparent video clip (~10 sec default)
-  2. Each clip shows: all previous sets static + current set blinking/animating
-  3. Walk-forward animation: stitches within a set appear one by one
-  4. Blink animation: set flashes between its two configured colors
-  5. Output is transparent background video (WebM with alpha or ProRes 4444)
 **Plans**: TBD
 
-### Phase 9: Sync Page
-**Goal**: A separate page/tool for syncing stitch overlay animations to a teaching video. User loads the source video, loads the stitch project, scrubs through the video and taps a key at each set transition to create bookmarks. The tool renders one complete transparent overlay video with all timing baked in — user drops it onto the source video in CapCut, already synced.
+### Phase 9: Optimization - Interface/Code
+**Goal**: TBD
 **Depends on**: Phase 8
-**Success Criteria** (what must be TRUE):
-  1. Separate page loads a source teaching video in a player alongside the stitch project
-  2. User can scrub through video and tap a key at each set transition to create a bookmark
-  3. Bookmarks are adjustable after creation
-  4. Tool renders one complete transparent overlay video with all set transitions timed to bookmarks
-  5. Output is a single overlay clip ready to drop onto the source video
+**Plans**: TBD
+
+### Phase 10: Packaging and Installation Procedures
+**Goal**: TBD
+**Depends on**: Phase 9
 **Plans**: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
-| Phase | Plans | Status | Completed |
-|-------|-------|--------|-----------|
-| 1. Project Scaffold + Core Infrastructure | 0/2 | Not started | - |
-| 2. Viewport + Layer System | 0/4 | Not started | - |
-| 3. Stitch Library + Picker | 0/3 | Not started | - |
-| 4. Stamp Tool + Selection | 0/4 | Not started | - |
-| 5. Set System | 0/3 | Not started | - |
-| 6. PNG Export | 0/3 | Not started | - |
-| 7. Remotion Integration | 0/? | Not started | - |
-| 8. Loopable Clip Export | 0/? | Not started | - |
-| 9. Sync Page | 0/? | Not started | - |
+| Phase | Status | Completed |
+|-------|--------|-----------|
+| 1. Project Scaffold + Core Infrastructure | Done | ✓ |
+| 2. Viewport + Layer System | Done | ✓ |
+| 3. Stitch Library + Picker | Done | ✓ |
+| 4. Stamp Tool + Selection | Done | ✓ |
+| 5. Set System | Done | ✓ |
+| 6. Video Zone + Sync Infrastructure | Done | ✓ |
+| 7. Clip Builder Interface | Not started | - |
+| 8. Clip Generator | Not started | - |
+| 9. Optimization - Interface/Code | Not started | - |
+| 10. Packaging and Installation Procedures | Not started | - |

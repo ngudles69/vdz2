@@ -92,6 +92,9 @@ class Tool {
   /** @returns {boolean} True if the image layer is locked */
   get imageLocked() { return this.manager?.layerManager?.isLocked('image') ?? false; }
 
+  /** @returns {boolean} True if the video layer is locked */
+  get videoLocked() { return this.manager?.layerManager?.isLocked('video') ?? false; }
+
   /** @returns {{ gridVisible: boolean, gridSpacing: number }} */
   get grid() {
     const vp = this.manager?.viewport;

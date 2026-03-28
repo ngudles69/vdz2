@@ -61,9 +61,9 @@ class SelectTool extends Tool {
       }
     }
 
-    // 3. Video frame hit test
+    // 3. Video frame hit test (skip if locked)
     const vidOverlay = this.manager?.videoOverlay;
-    if (vidOverlay && vidOverlay.hasVideo) {
+    if (vidOverlay && vidOverlay.hasVideo && !this.videoLocked) {
       const videoVisible = this.#layerManager ? this.#layerManager.isVisible('video') : true;
       if (videoVisible) {
         const vp = this.manager.viewport;

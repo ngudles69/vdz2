@@ -39,11 +39,32 @@ vdz2/
     └── plans/                 # All execution plans live here
 ```
 
+## Tech Stack & Constraints
+
+**Core stack:**
+- **Three.js** — sole rendering library. Editor canvas, PNG export, video frame rendering. No Canvas2D rendering layer, no Pixi, no Konva.
+- **Vanilla JS + ES modules.** No build step, no bundler, no framework. Import maps in HTML.
+- **No React, no Remotion.** Video generation is done via WebCodecs + frame-by-frame Three.js rendering, not Remotion.
+
+**Video pipeline:**
+- **Clip generation (Phase 8):** Three.js renders each frame off-screen from the clip recipe → WebCodecs API encodes frames (hardware-accelerated H.264) → mp4-mux (small JS muxer library, ~10-20KB) wraps into MP4 container → user downloads MP4. All in-memory, single pipeline, no intermediate files.
+- **Fallback:** If WebCodecs is unavailable (old browser), export numbered PNGs (001.png, 002.png...) + meta.json. User encodes externally.
+- **Filmstrip conversion:** External tool only (ffmpeg/Handbrake). Not part of the app. PC/Mac local utility bundled in Phase 10. The app extracts filmstrip frames on-the-fly from whatever video is loaded.
+
+**Cross-platform targets:**
+- Must run in browser on PC, Mac, iPad, iPhone, Android.
+- PWA is the packaging path for mobile (add to home screen, works offline).
+- Desktop packaging (Phase 10) is a separate concern.
+- WebCodecs requires Safari 16.4+ (iOS) / Chrome 94+. Fallback to PNG export for older browsers.
+- No native code, no Node.js, no server-side dependencies in the app itself.
+
+**UI constraints:**
+- Single responsive design for all devices. No separate mobile layout.
+- Touch targets minimum 44px for mobile/tablet.
+- Grid/table UIs must scroll (horizontal + vertical) on smaller screens.
+
 ## Key Patterns
 
-- **Three.js is the only rendering library.** Used for the editor canvas, PNG export, and eventually video frame rendering. No Canvas2D rendering layer, no Pixi, no Konva.
-- **Vanilla JS + ES modules.** No build step, no bundler, no framework. Import maps in `index.html`.
-- **No React until Phase 2.** React/Remotion is only added later for video generation, as a separate entry point.
 - **Stitches are independent positioned objects.** No mesh, no graph topology, no edge attributes. Each stitch has a position, rotation, and optional set assignment.
 - **Export-first data model.** The data model must make PNG and JSON export trivial — filter stitches by set, hide layers, render.
 - **Stitch definitions are the foundation.** StitchLibrary (~45 definitions + Canvas2D draw functions) and StitchAtlas (texture generation) are ported from the original VDZ repo and serve as the core asset.

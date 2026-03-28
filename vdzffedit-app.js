@@ -23,6 +23,8 @@ import { StampTool } from './ui/tools/StampTool.js';
 import { TextTool } from './ui/tools/TextTool.js';
 import { AlignPanel } from './ui/AlignPanel.js';
 import { VideoZone } from './ui/VideoZone.js';
+import { ClipRecipe } from './modules/ClipRecipe.js';
+import { ClipBuilderPanel } from './ui/ClipBuilderPanel.js';
 import { TextToolbar } from './ui/TextToolbar.js';
 import { KeyboardManager } from './ui/KeyboardManager.js';
 import {
@@ -95,6 +97,17 @@ bus.on('layer:lock-changed', ({ name, locked }) => {
   if (name === 'stitches' && locked) {
     selectionManager.deselectAll();
     transformControls.clearTarget();
+  }
+  if (name === 'video' && locked) {
+    // Clear video transform target so it doesn't intercept clicks
+    if (transformControls.target?.videoOverlay) {
+      transformControls.clearTarget();
+    }
+  }
+  if (name === 'image' && locked) {
+    if (transformControls.target?.imageOverlay) {
+      transformControls.clearTarget();
+    }
   }
 });
 
@@ -353,6 +366,7 @@ async function saveProject() {
     },
     background: viewport.backgroundType,
     sets: setManager.exportJSON(),
+    clipRecipe: clipRecipe.exportJSON(),
   };
   const json = JSON.stringify(project, null, 2);
 
@@ -423,6 +437,8 @@ function loadProject() {
         // Restore background
         if (project.background) viewport.setBackground(project.background);
         if (project.sets) setManager.importJSON(project.sets);
+        if (project.clipRecipe) clipRecipe.importJSON(project.clipRecipe);
+        clipBuilderPanel.refresh();
 
         toast('Project loaded');
       } catch (err) {
@@ -489,6 +505,17 @@ btnGroupsToggle.addEventListener('click', () => {
   const on = setBarEl.style.display !== 'none';
   setBarEl.style.display = on ? 'none' : 'flex';
   btnGroupsToggle.classList.toggle('active', !on);
+});
+
+// Guides toggle (grid + indicators)
+const btnGuidesToggle = document.getElementById('btn-guides-toggle');
+let guidesVisible = false;
+btnGuidesToggle.addEventListener('click', () => {
+  guidesVisible = !guidesVisible;
+  btnGuidesToggle.classList.toggle('active', guidesVisible);
+  viewport.setGridVisible(guidesVisible);
+  const indicators = layerManager.getGroup('indicators');
+  if (indicators) indicators.visible = guidesVisible;
 });
 
 const btnGridToggle = document.getElementById('btn-grid-toggle');
@@ -559,6 +586,8 @@ for (let i = 0; i <= 9; i++) {
 // --- Panels ---
 document.getElementById('btn-stitch-toggle').addEventListener('click', () => stitchPicker.toggle());
 keyboard.register({ key: 'S', label: 'Toggle stitch picker', category: 'panels', action: () => stitchPicker.toggle() });
+keyboard.register({ key: 'C', label: 'Toggle clip builder', category: 'panels', action: () => clipBuilderPanel.toggle() });
+document.getElementById('btn-clip-builder').addEventListener('click', () => clipBuilderPanel.toggle());
 keyboard.register({ key: 'T', label: 'Text tool', category: 'tools', action: () => {
   if (toolManager.activeToolId === 'text') {
     toolManager.setActive('select');
@@ -736,6 +765,10 @@ state.watch('stitchScale', saveSettings);
 
 const videoZone = new VideoZone(bus, state);
 
+// Clip builder
+const clipRecipe = new ClipRecipe();
+const clipBuilderPanel = new ClipBuilderPanel(bus, clipRecipe, setManager, videoZone);
+
 // When video loads, show the frame in Three.js
 bus.on('video:loaded', ({ width, height }) => {
   videoOverlay.setVideo(videoZone.videoElement, width, height);
@@ -770,6 +803,7 @@ window.__vdz = {
   stitchLibrary, stitchAtlas, stitchPicker,
   stitchStore, stitchRenderer, selectionManager, transformControls,
   toolManager, keyboard, setManager, textToolbar, videoZone, videoOverlay,
+  clipRecipe, clipBuilderPanel,
 };
 
 console.log('[VDZ] Freeform editor initialized');
