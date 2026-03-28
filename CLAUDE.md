@@ -69,6 +69,15 @@ Before writing code, read in this order:
 5. `research/` — requirements and PRD for full context
 6. The relevant plan in `.planning/plans/` if implementing one
 
+## Standing Instructions
+
+1. **Do not edit code without user approval.** Present your analysis and proposed fix first. Wait for explicit approval before editing any file.
+2. **Gather complete info first.** If user requirements, confirm there are no further requirements. Then diagnose root cause. Before presenting, verify this is the best solution — if unsure, research more. Then present analysis, wait for approval.
+3. **No blind patching.** One fix, done right. Do not patch repeatedly.
+4. **Do not assume.** If the problem or solution is unclear, ask. Do not guess.
+5. **When user says stop, STOP.** Do not continue working.
+6. **Do not implement until user confirms there are no additional requirements.** Ask before coding.
+
 ## Context Window Hygiene
 
 At ~300k tokens, remind user: "Approaching 300k tokens. Good time to `/clear` or `/compact`."

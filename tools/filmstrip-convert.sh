@@ -13,6 +13,6 @@ if [ -z "$INPUT" ]; then
   exit 1
 fi
 
-ffmpeg -i "$INPUT" -vf "scale=80:-1,fps=1" -an -q:v 10 -y "$OUTPUT"
+ffmpeg -i "$INPUT" -vf "scale=80:-1,fps=30" -an -q:v 10 -y "$OUTPUT"
 
 echo "Done: $OUTPUT"
