@@ -195,6 +195,18 @@ class ClipBuilderPanel {
     const numRows = visibleRows.length;
     const videoDuration = this.#videoZone.hasVideo ? this.#videoZone.videoElement.duration : 0;
 
+    // Nothing to show — display hint and collapse
+    if (numRows === 0 || (sections.length === 0 && recipeDims.cols === 0)) {
+      this.#tableWrap.innerHTML = '';
+      const hint = document.createElement('div');
+      hint.className = 'cb-empty-hint';
+      hint.textContent = numRows === 0
+        ? 'Assign stitches to groups first.'
+        : 'Load a video and add bookmarks to create sections.';
+      this.#tableWrap.appendChild(hint);
+      return;
+    }
+
     const table = document.createElement('table');
     table.className = 'cb-table';
 
@@ -829,6 +841,13 @@ class ClipBuilderPanel {
       .cb-table-wrap {
         overflow: auto;
         flex: 1;
+      }
+
+      .cb-empty-hint {
+        padding: 16px;
+        text-align: center;
+        font-size: 14px;
+        color: var(--vd-text-muted);
       }
 
       .cb-table {
