@@ -227,6 +227,13 @@ class Viewport {
   #render() {
     if (this.#stitchRenderer) this.#stitchRenderer.sync();
     this.#controls.update();
+    // Force 2D view — camera always looks straight down Z, no rotation
+    const t = this.#controls.target;
+    this.#camera.position.x = t.x;
+    this.#camera.position.y = t.y;
+    this.#camera.position.z = 100;
+    this.#camera.up.set(0, 1, 0);
+    this.#camera.lookAt(t.x, t.y, 0);
     this.#renderer.render(this.#scene, this.#camera);
     if (this.#rulerVisible) this.#drawRulers();
   }

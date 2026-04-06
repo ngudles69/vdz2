@@ -353,16 +353,11 @@ class ToolManager {
       const worldPerPixelY = frustumSize / (rect.height * camera.zoom);
       const panX = (mid.x - this.#prevMidpoint.x) * worldPerPixelX;
       const panY = (mid.y - this.#prevMidpoint.y) * worldPerPixelY;
-      camera.position.x -= panX;
-      camera.position.y += panY;
-      // Keep OrbitControls target in sync so it doesn't fight our changes
+      // Move OrbitControls target — render loop syncs camera position
       this.#controls.target.x -= panX;
       this.#controls.target.y += panY;
     }
     this.#prevMidpoint = mid;
-
-    // Sync OrbitControls with our changes
-    this.#controls.update();
 
     if (this.bus) this.bus.emit('camera:zoom-changed', { zoom: camera.zoom });
   }
