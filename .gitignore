@@ -15,4 +15,4 @@ CLAUDE.md
 CONTEXT.md
 convert.sh
 server.sh
-tools/
+/tools/
