@@ -636,6 +636,22 @@
       padding: 0;
     }
 
+    .settings-row select {
+      height: 26px;
+      background: var(--vd-surface-2);
+      color: var(--vd-text);
+      border: 1px solid var(--vd-border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 0 4px;
+      outline: none;
+    }
+
+    .settings-row select:focus {
+      border-color: var(--vd-accent);
+    }
+
     .settings-row input[type="number"] {
       width: 60px;
       height: 26px;
@@ -1087,6 +1103,14 @@
         <span class="material-symbols-rounded">close</span>
       </button>
       <h3>Settings</h3>
+      <div class="settings-row">
+        <label for="setting-doc-size">Document size</label>
+        <select id="setting-doc-size">
+          <option value="1080x1920" selected>1080 × 1920 (portrait)</option>
+          <option value="1920x1080">1920 × 1080 (landscape)</option>
+          <option value="1024x1024">1024 × 1024 (square)</option>
+        </select>
+      </div>
       <div class="settings-row">
         <label for="setting-sel-color">Selection color</label>
         <input type="color" id="setting-sel-color" value="#ff69b4">

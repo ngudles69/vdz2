@@ -362,6 +362,7 @@ keyboard.register({ key: 'ArrowRight', label: 'Nudge right', category: 'edit', w
 async function saveProject() {
   const project = {
     version: 1,
+    documentSize: { width: viewport.docWidth, height: viewport.docHeight },
     stamps: stitchStore.exportJSON(),
     layers: layerManager.saveState(),
     grid: {
@@ -430,6 +431,13 @@ function loadProject() {
         // Clear current state
         selectionManager.deselectAll();
         history.clear();
+
+        // Restore document size
+        if (project.documentSize) {
+          const { width, height } = project.documentSize;
+          viewport.setDocumentSize(width, height);
+          document.getElementById('setting-doc-size').value = `${width}x${height}`;
+        }
 
         // Restore stamps
         stitchStore.importJSON(project.stamps);
@@ -725,6 +733,12 @@ viewport.domElement.addEventListener('pointerdown', () => {
   settingsPanel.classList.remove('open');
 });
 
+document.getElementById('setting-doc-size').addEventListener('change', (e) => {
+  const [w, h] = e.target.value.split('x').map(Number);
+  viewport.setDocumentSize(w, h);
+  saveSettings();
+});
+
 document.getElementById('setting-grid').addEventListener('change', (e) => { viewport.setGridVisible(e.target.checked); saveSettings(); });
 document.getElementById('setting-grid-size').addEventListener('change', (e) => {
   const s = parseInt(e.target.value);
@@ -773,6 +787,7 @@ function saveSettings() {
     stitchScale: state.get('stitchScale') || 1,
     groups: setBarEl.style.display !== 'none',
     background: viewport.backgroundType,
+    docSize: `${viewport.docWidth}x${viewport.docHeight}`,
   };
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
 }
@@ -822,6 +837,13 @@ function loadSettings() {
     if (s.stitchScale) {
       state.set('stitchScale', s.stitchScale);
       document.getElementById('setting-stitch-scale').value = s.stitchScale;
+    }
+    if (s.docSize) {
+      const [w, h] = s.docSize.split('x').map(Number);
+      if (w && h) {
+        viewport.setDocumentSize(w, h);
+        document.getElementById('setting-doc-size').value = s.docSize;
+      }
     }
     if (s.background) viewport.setBackground(s.background);
     if (s.groups !== undefined) {

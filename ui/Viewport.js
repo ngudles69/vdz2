@@ -45,8 +45,14 @@ class Viewport {
   // --- LayerManager ---
   #layerManager = null;
 
+  // --- Document size ---
+  #docWidth = 1080;
+  #docHeight = 1920;
+
   // --- Background ---
-  #bgMesh = null;
+  #bgMesh = null;       // document area background
+  #overflowMesh = null;  // overflow area (dark)
+  #borderLine = null;    // document border
   #bgType = 'minimal';
 
   // --- Line grid ---
@@ -160,7 +166,7 @@ class Viewport {
     }
 
     const spacing = this.#gridSpacing;
-    const extent = 2000;
+    const extent = Math.ceil(this.#overflowSize() / 2);
     const positions = [];
 
     for (let y = 0; y <= extent; y += spacing) {
@@ -315,6 +321,36 @@ class Viewport {
   get rulerVisible(){ return this.#rulerVisible; }
   get rulerOpacity(){ return this.#rulerOpacity; }
   get backgroundType() { return this.#bgType; }
+  get docWidth() { return this.#docWidth; }
+  get docHeight() { return this.#docHeight; }
+
+  setDocumentSize(w, h) {
+    this.#docWidth = w;
+    this.#docHeight = h;
+
+    // Resize overflow
+    if (this.#overflowMesh) {
+      this.#overflowMesh.geometry.dispose();
+      const ovSize = this.#overflowSize();
+      this.#overflowMesh.geometry = new THREE.PlaneGeometry(ovSize, ovSize);
+    }
+
+    // Resize document background
+    if (this.#bgMesh) {
+      this.#bgMesh.geometry.dispose();
+      this.#bgMesh.geometry = new THREE.PlaneGeometry(w, h);
+    }
+
+    // Rebuild border
+    if (this.#borderLine && this.#layerManager) {
+      this.#createBorder(this.#layerManager.getGroup('background'));
+    }
+
+    // Rebuild grid to fit
+    if (this.#gridGroup) this.#buildGridGeometry();
+
+    if (this.#bus) this.#bus.emit('document:size-changed', { width: w, height: h });
+  }
 
   /** Convert screen pixel position to world coordinates. */
   screenToWorld(clientX, clientY) {
@@ -377,11 +413,50 @@ class Viewport {
 
   #createBackground() {
     const bgGroup = this.#layerManager.getGroup('background');
-    const geometry = new THREE.PlaneGeometry(10000, 10000);
-    const material = new THREE.MeshBasicMaterial({ color: 0x0d0d0f, depthTest: false, depthWrite: false });
-    this.#bgMesh = new THREE.Mesh(geometry, material);
-    this.#bgMesh.renderOrder = 0;
+
+    // Overflow area (dark, behind document)
+    const ovSize = this.#overflowSize();
+    const ovGeom = new THREE.PlaneGeometry(ovSize, ovSize);
+    const ovMat = new THREE.MeshBasicMaterial({ color: 0x080810, depthTest: false, depthWrite: false });
+    this.#overflowMesh = new THREE.Mesh(ovGeom, ovMat);
+    this.#overflowMesh.renderOrder = 0;
+    bgGroup.add(this.#overflowMesh);
+
+    // Document area background
+    const docGeom = new THREE.PlaneGeometry(this.#docWidth, this.#docHeight);
+    const docMat = new THREE.MeshBasicMaterial({ color: 0x0d0d0f, depthTest: false, depthWrite: false });
+    this.#bgMesh = new THREE.Mesh(docGeom, docMat);
+    this.#bgMesh.renderOrder = 1;
     bgGroup.add(this.#bgMesh);
+
+    // Document border
+    this.#createBorder(bgGroup);
+  }
+
+  #overflowSize() {
+    return Math.max(this.#docWidth, this.#docHeight) * 1.5;
+  }
+
+  #createBorder(bgGroup) {
+    if (this.#borderLine) {
+      bgGroup.remove(this.#borderLine);
+      this.#borderLine.geometry.dispose();
+      this.#borderLine.material.dispose();
+    }
+    const hw = this.#docWidth / 2;
+    const hh = this.#docHeight / 2;
+    const pts = [
+      new THREE.Vector3(-hw, -hh, 0),
+      new THREE.Vector3( hw, -hh, 0),
+      new THREE.Vector3( hw,  hh, 0),
+      new THREE.Vector3(-hw,  hh, 0),
+      new THREE.Vector3(-hw, -hh, 0),
+    ];
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({ color: 0x444455, depthTest: false, transparent: true, opacity: 0.6 });
+    this.#borderLine = new THREE.Line(geom, mat);
+    this.#borderLine.renderOrder = 2;
+    bgGroup.add(this.#borderLine);
   }
 
   // ==== Background presets ====
@@ -445,7 +520,9 @@ class Viewport {
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = THREE.RepeatWrapping; texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(40, 40);
+    const repeatX = Math.max(1, Math.round(this.#docWidth / 50));
+    const repeatY = Math.max(1, Math.round(this.#docHeight / 50));
+    texture.repeat.set(repeatX, repeatY);
     return texture;
   }
 
