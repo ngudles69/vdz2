@@ -1,3 +1,5 @@
+import { toast } from '../core/Toast.js';
+
 /**
  * SetBar — Bottom center bar with numbered set buttons.
  *
@@ -63,6 +65,14 @@ class SetBar {
         }
 
         const setId = parseInt(setKey);
+
+        // If stitches are selected, tap assigns selection to this group
+        if (this.#selectionManager.hasSelection) {
+          const ids = this.#selectionManager.selectedArray;
+          this.#setManager.assign(ids, setId);
+          toast(`Assigned to set ${setId}`);
+          return;
+        }
 
         // Double-click detection: select all stitches in this set
         if (this.#lastClickSet === setKey && (now - this.#lastClickTime) < 350) {

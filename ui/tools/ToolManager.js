@@ -30,6 +30,12 @@ class ToolManager {
   /** @type {boolean} Whether we're in a space+drag pan */
   #spacePanning = false;
 
+  /** @type {Set<number>} Active touch pointer IDs on the canvas */
+  #activePointers = new Set();
+
+  /** @type {boolean} Whether a multi-touch gesture is in progress */
+  #multiTouch = false;
+
   // Shared references (available to tools via tool.manager.*)
   bus;
   state;
@@ -173,6 +179,23 @@ class ToolManager {
     this.#canvas.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return; // left-click only
 
+      // Track touch pointers
+      if (e.pointerType === 'touch') {
+        this.#activePointers.add(e.pointerId);
+
+        // Second finger down — switch to multi-touch (let OrbitControls handle pinch/pan)
+        if (this.#activePointers.size > 1) {
+          this.#multiTouch = true;
+          // Cancel any in-progress tool drag
+          if (this.#dragging) {
+            this.#dragging = false;
+            this.#controls.enabled = true;
+          }
+          this.#pointerDownInfo = null;
+          return;
+        }
+      }
+
       // Spacebar + left-click = pan (let OrbitControls handle it)
       if (this.#spaceHeld) {
         this.#spacePanning = true;
@@ -194,6 +217,7 @@ class ToolManager {
     });
 
     this.#canvas.addEventListener('pointermove', (e) => {
+      if (this.#multiTouch) return; // OrbitControls handles pinch/pan
       if (this.#spacePanning) return; // OrbitControls handles it
       if (!this.#activeTool) return;
       const wp = this.#screenToWorld(e.clientX, e.clientY);
@@ -205,6 +229,20 @@ class ToolManager {
 
     this.#canvas.addEventListener('pointerup', (e) => {
       if (e.button !== 0) return;
+
+      // Track touch pointers
+      if (e.pointerType === 'touch') {
+        this.#activePointers.delete(e.pointerId);
+
+        // If multi-touch gesture was in progress, suppress tool actions
+        if (this.#multiTouch) {
+          // Reset when all fingers are lifted
+          if (this.#activePointers.size === 0) {
+            this.#multiTouch = false;
+          }
+          return;
+        }
+      }
 
       if (this.#spacePanning) {
         this.#spacePanning = false;
@@ -224,6 +262,20 @@ class ToolManager {
       }
 
       this.#pointerDownInfo = null;
+    });
+
+    // Clean up pointers on cancel (e.g. finger leaves screen edge)
+    this.#canvas.addEventListener('pointercancel', (e) => {
+      if (e.pointerType === 'touch') {
+        this.#activePointers.delete(e.pointerId);
+        if (this.#activePointers.size === 0) {
+          this.#multiTouch = false;
+          if (this.#dragging) {
+            this.#dragging = false;
+            this.#controls.enabled = true;
+          }
+        }
+      }
     });
   }
 
