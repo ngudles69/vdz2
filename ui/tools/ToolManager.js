@@ -179,18 +179,16 @@ class ToolManager {
     this.#canvas.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return; // left-click only
 
+      const isTouch = e.pointerType === 'touch';
+
       // Track touch pointers
-      if (e.pointerType === 'touch') {
+      if (isTouch) {
         this.#activePointers.add(e.pointerId);
 
-        // Second finger down — switch to multi-touch (let OrbitControls handle pinch/pan)
+        // Second finger down — switch to multi-touch, suppress tool
         if (this.#activePointers.size > 1) {
           this.#multiTouch = true;
-          // Cancel any in-progress tool drag
-          if (this.#dragging) {
-            this.#dragging = false;
-            this.#controls.enabled = true;
-          }
+          this.#dragging = false;
           this.#pointerDownInfo = null;
           return;
         }
@@ -211,7 +209,12 @@ class ToolManager {
         const consumed = this.#activeTool.onPointerDown(wp, e);
         if (consumed) {
           this.#dragging = true;
-          this.#controls.enabled = false;
+          // Only disable OrbitControls for mouse — touch uses ONE:null
+          // so OrbitControls ignores single-finger anyway, and must stay
+          // enabled to detect the second finger for pinch/pan.
+          if (!isTouch) {
+            this.#controls.enabled = false;
+          }
         }
       }
     });
@@ -236,7 +239,6 @@ class ToolManager {
 
         // If multi-touch gesture was in progress, suppress tool actions
         if (this.#multiTouch) {
-          // Reset when all fingers are lifted
           if (this.#activePointers.size === 0) {
             this.#multiTouch = false;
           }
@@ -258,7 +260,9 @@ class ToolManager {
 
       if (this.#dragging) {
         this.#dragging = false;
-        this.#controls.enabled = true;
+        if (!this.#controls.enabled) {
+          this.#controls.enabled = true;
+        }
       }
 
       this.#pointerDownInfo = null;
@@ -270,10 +274,6 @@ class ToolManager {
         this.#activePointers.delete(e.pointerId);
         if (this.#activePointers.size === 0) {
           this.#multiTouch = false;
-          if (this.#dragging) {
-            this.#dragging = false;
-            this.#controls.enabled = true;
-          }
         }
       }
     });
