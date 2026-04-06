@@ -207,6 +207,8 @@ class ToolManager {
           this.#multiTouch = true;
           this.#dragging = false;
           this.#pointerDownInfo = null;
+          // Disable OrbitControls so it doesn't rotate/pan from touch
+          this.#controls.enabled = false;
           // Initialize pinch/pan tracking
           this.#initPinch();
           return;
@@ -267,6 +269,7 @@ class ToolManager {
             this.#pinchStartDist = null;
             this.#pinchStartZoom = null;
             this.#prevMidpoint = null;
+            this.#controls.enabled = true;
           }
           return;
         }
@@ -303,6 +306,7 @@ class ToolManager {
           this.#pinchStartDist = null;
           this.#pinchStartZoom = null;
           this.#prevMidpoint = null;
+          this.#controls.enabled = true;
         }
       }
     });
