@@ -25,6 +25,7 @@ import { AlignPanel } from './ui/AlignPanel.js';
 import { VideoZone } from './ui/VideoZone.js';
 import { ClipRecipe } from './modules/ClipRecipe.js';
 import { ClipBuilderPanel } from './ui/ClipBuilderPanel.js';
+import { ExportPanel } from './ui/ExportPanel.js';
 import { TextToolbar } from './ui/TextToolbar.js';
 import { KeyboardManager } from './ui/KeyboardManager.js';
 import {
@@ -366,7 +367,15 @@ async function saveProject() {
     },
     background: viewport.backgroundType,
     sets: setManager.exportJSON(),
-    clipRecipe: clipRecipe.exportJSON(),
+    videoDuration: videoZone.exportDuration(),
+    bookmarks: videoZone.exportBookmarks(),
+    clipRecipe: (() => {
+      // Ensure video name is current before saving
+      if (videoZone.hasVideo && videoZone.videoName) {
+        clipRecipe.setVideoReference(videoZone.videoName, null);
+      }
+      return clipRecipe.exportJSON();
+    })(),
   };
   const json = JSON.stringify(project, null, 2);
 
@@ -437,8 +446,17 @@ function loadProject() {
         // Restore background
         if (project.background) viewport.setBackground(project.background);
         if (project.sets) setManager.importJSON(project.sets);
+        if (project.videoDuration) videoZone.importDuration(project.videoDuration);
+        if (project.bookmarks) videoZone.importBookmarks(project.bookmarks);
         if (project.clipRecipe) clipRecipe.importJSON(project.clipRecipe);
         clipBuilderPanel.refresh();
+
+        // Show stored video name
+        const videoRef = clipRecipe.getVideoReference();
+        if (videoRef.name) {
+          const nameEl = document.getElementById('vc-name');
+          if (nameEl) nameEl.textContent = videoRef.name;
+        }
 
         toast('Project loaded');
       } catch (err) {
@@ -588,6 +606,8 @@ document.getElementById('btn-stitch-toggle').addEventListener('click', () => sti
 keyboard.register({ key: 'S', label: 'Toggle stitch picker', category: 'panels', action: () => stitchPicker.toggle() });
 keyboard.register({ key: 'C', label: 'Toggle clip builder', category: 'panels', action: () => clipBuilderPanel.toggle() });
 document.getElementById('btn-clip-builder').addEventListener('click', () => clipBuilderPanel.toggle());
+keyboard.register({ key: 'E', label: 'Export clip', category: 'panels', action: () => exportPanel.toggle() });
+document.getElementById('btn-export').addEventListener('click', () => exportPanel.toggle());
 keyboard.register({ key: 'T', label: 'Text tool', category: 'tools', action: () => {
   if (toolManager.activeToolId === 'text') {
     toolManager.setActive('select');
@@ -768,6 +788,7 @@ const videoZone = new VideoZone(bus, state);
 // Clip builder
 const clipRecipe = new ClipRecipe();
 const clipBuilderPanel = new ClipBuilderPanel(bus, clipRecipe, setManager, videoZone);
+const exportPanel = new ExportPanel(bus, clipRecipe, stitchStore, stitchAtlas, setManager, videoZone, viewport);
 
 // When video loads, show the frame in Three.js
 bus.on('video:loaded', ({ width, height }) => {
@@ -803,7 +824,7 @@ window.__vdz = {
   stitchLibrary, stitchAtlas, stitchPicker,
   stitchStore, stitchRenderer, selectionManager, transformControls,
   toolManager, keyboard, setManager, textToolbar, videoZone, videoOverlay,
-  clipRecipe, clipBuilderPanel,
+  clipRecipe, clipBuilderPanel, exportPanel,
 };
 
 console.log('[VDZ] Freeform editor initialized');

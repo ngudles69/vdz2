@@ -5,4 +5,4 @@
 
 PORT="${1:-3688}"
 echo "Serving on http://localhost:$PORT/vdzffedit.html"
-uv run python -m http.server "$PORT" --bind 127.0.0.1
+uv run python -m http.server "$PORT" --bind 0.0.0.0

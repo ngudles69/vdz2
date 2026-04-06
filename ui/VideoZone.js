@@ -15,8 +15,8 @@ class VideoZone {
 
   /** @type {HTMLElement} */
   #zone;
-  #emptyEl;
-  #controlsEl;
+  #transportEl;
+  #loadBtnEl;
   #playhead;
   #timeline;
   #timeDisplay;
@@ -38,6 +38,9 @@ class VideoZone {
   /** @type {string|null} Video filename */
   #videoName = null;
 
+  /** @type {number} Stored duration (from saved project, used when no video loaded) */
+  #storedDuration = 0;
+
   constructor(bus, state) {
     this.#bus = bus;
     this.#state = state;
@@ -52,8 +55,8 @@ class VideoZone {
 
     // DOM refs
     this.#zone = document.getElementById('video-zone');
-    this.#emptyEl = document.getElementById('video-zone-empty');
-    this.#controlsEl = document.getElementById('video-controls');
+    this.#transportEl = document.getElementById('video-transport');
+    this.#loadBtnEl = document.getElementById('btn-load-video');
     this.#playhead = null; // created by #extractFilmstrip
     this.#timeline = document.getElementById('video-filmstrip');
     this.#timeDisplay = document.getElementById('vc-time');
@@ -87,6 +90,14 @@ class VideoZone {
   }
 
   loadVideo(file) {
+    // Prompt before loading if bookmarks exist
+    if (this.#bookmarks.length > 0) {
+      if (confirm('Clear existing bookmarks?')) {
+        this.#bookmarks = [];
+        this.#renderBookmarks();
+      }
+    }
+
     const url = URL.createObjectURL(file);
     this.#video.src = url;
     this.#videoName = file.name;
@@ -95,7 +106,6 @@ class VideoZone {
       this.#nameDisplay.textContent = file.name;
       this.#updateTime();
       this.#showActive();
-      this.#bookmarks = [];
       this.#renderBookmarks();
       this.#extractFilmstrip();
       this.#bus.emit('video:loaded', {
@@ -119,19 +129,19 @@ class VideoZone {
   }
 
   #showActive() {
-    this.#emptyEl.style.display = 'none';
-    this.#controlsEl.style.display = 'flex';
+    this.#transportEl.style.display = 'flex';
+    this.#loadBtnEl.style.display = 'none';
     this.#timeline.style.display = 'block';
     this.#zone.classList.remove('collapsed');
     this.#zone.classList.add('expanded');
   }
 
   #showEmpty() {
-    this.#controlsEl.style.display = 'none';
+    this.#transportEl.style.display = 'none';
+    this.#loadBtnEl.style.display = 'inline-flex';
     this.#timeline.style.display = 'none';
     this.#zone.classList.remove('expanded');
     this.#zone.classList.add('collapsed');
-    this.#emptyEl.style.display = 'flex';
   }
 
   // ---- Transport ----
@@ -525,8 +535,10 @@ class VideoZone {
 
   /** Get sections from bookmarks. Each bookmark is a section boundary. */
   #getSections() {
-    const dur = this.#video.duration || 0;
-    const points = [0, ...this.#bookmarks, dur];
+    const dur = this.duration;
+    if (dur <= 0 && this.#bookmarks.length === 0) return [];
+    const endPoint = dur > 0 ? dur : (this.#bookmarks.length > 0 ? this.#bookmarks[this.#bookmarks.length - 1] + 1 : 0);
+    const points = [0, ...this.#bookmarks, endPoint];
     const sections = [];
     for (let i = 0; i < points.length - 1; i++) {
       sections.push({ start: points[i], end: points[i + 1] });
@@ -542,8 +554,8 @@ class VideoZone {
   /** @returns {boolean} */
   get hasVideo() { return !!this.#video.src && this.#video.duration > 0; }
 
-  /** @returns {number} Video duration in seconds, or 0 */
-  get duration() { return this.#video.duration || 0; }
+  /** @returns {number} Video duration in seconds, or stored duration */
+  get duration() { return this.#video.duration || this.#storedDuration || 0; }
 
   /** @returns {string|null} Video filename */
   get videoName() { return this.#videoName; }
@@ -562,6 +574,28 @@ class VideoZone {
 
   /** @returns {boolean} */
   get isPlaying() { return this.#playing; }
+
+  /** Import stored duration from saved data */
+  importDuration(d) {
+    if (typeof d === 'number' && d > 0) this.#storedDuration = d;
+  }
+
+  /** Export duration for saving */
+  exportDuration() {
+    return this.duration;
+  }
+
+  /** Import bookmarks from saved data */
+  importBookmarks(arr) {
+    if (!Array.isArray(arr)) return;
+    this.#bookmarks = arr.filter(b => typeof b === 'number' && b >= 0).sort((a, b) => a - b);
+    this.#renderBookmarks();
+  }
+
+  /** Export bookmarks for saving */
+  exportBookmarks() {
+    return [...this.#bookmarks];
+  }
 }
 
 export { VideoZone };
