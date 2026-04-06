@@ -36,6 +36,9 @@ class ToolManager {
   /** @type {boolean} Whether a multi-touch gesture is in progress */
   #multiTouch = false;
 
+  /** @type {boolean} Whether the current interaction is touch */
+  #isTouch = false;
+
   // Shared references (available to tools via tool.manager.*)
   bus;
   state;
@@ -180,6 +183,7 @@ class ToolManager {
       if (e.button !== 0) return; // left-click only
 
       const isTouch = e.pointerType === 'touch';
+      this.#isTouch = isTouch;
 
       // Track touch pointers
       if (isTouch) {
@@ -308,8 +312,8 @@ class ToolManager {
   /** @returns {{ x: number, y: number, time: number }|null} */
   get pointerDownInfo() { return this.#pointerDownInfo; }
 
-  /** Disable orbit controls (called by tools during drag) */
-  disableControls() { this.#controls.enabled = false; }
+  /** Disable orbit controls (called by tools during drag — skipped for touch) */
+  disableControls() { if (!this.#isTouch) this.#controls.enabled = false; }
 
   /** Re-enable orbit controls */
   enableControls() { this.#controls.enabled = true; }
