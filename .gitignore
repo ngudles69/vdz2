@@ -5,3 +5,14 @@ Thumbs.db
 .claude/
 videos/*
 !videos/.gitkeep
+.venv/
+requirements.txt
+saves/
+ss/
+.planning/
+research/
+CLAUDE.md
+CONTEXT.md
+convert.sh
+server.sh
+tools/
