@@ -356,10 +356,18 @@ class ToolManager {
       // Convert pixel delta to world units
       const worldPerPixelX = (frustumSize * aspect) / (rect.width * camera.zoom);
       const worldPerPixelY = frustumSize / (rect.height * camera.zoom);
-      camera.position.x -= (mid.x - this.#prevMidpoint.x) * worldPerPixelX;
-      camera.position.y += (mid.y - this.#prevMidpoint.y) * worldPerPixelY;
+      const panX = (mid.x - this.#prevMidpoint.x) * worldPerPixelX;
+      const panY = (mid.y - this.#prevMidpoint.y) * worldPerPixelY;
+      camera.position.x -= panX;
+      camera.position.y += panY;
+      // Keep OrbitControls target in sync so it doesn't fight our changes
+      this.#controls.target.x -= panX;
+      this.#controls.target.y += panY;
     }
     this.#prevMidpoint = mid;
+
+    // Sync OrbitControls with our changes
+    this.#controls.update();
 
     if (this.bus) this.bus.emit('camera:zoom-changed', { zoom: camera.zoom });
   }
