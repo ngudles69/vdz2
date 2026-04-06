@@ -117,7 +117,8 @@ class Viewport {
       MIDDLE: THREE.MOUSE.PAN,
       RIGHT: THREE.MOUSE.PAN,
     };
-    this.#controls.touches = { ONE: null, TWO: THREE.TOUCH.DOLLY_PAN };
+    // Touch is fully handled by ToolManager (manual pinch/pan)
+    this.#controls.touches = { ONE: null, TWO: null };
 
     let lastZoom = this.#camera.zoom;
     this.#controls.addEventListener('change', () => {
