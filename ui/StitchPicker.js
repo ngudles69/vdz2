@@ -494,6 +494,7 @@ class StitchPicker {
       const grid = document.createElement('div');
       grid.className = 'sp-grid';
       for (const s of stitches) grid.appendChild(this.#createBtn(s));
+      grid.appendChild(this.#createClearBtn());
       this.#content.appendChild(grid);
     } else {
       const categories = this.#stitchLibrary.getCategories();
@@ -509,7 +510,28 @@ class StitchPicker {
         for (const s of cat.stitches) grid.appendChild(this.#createBtn(s));
         this.#content.appendChild(grid);
       }
+      // Clear button at the end
+      const clearGrid = document.createElement('div');
+      clearGrid.className = 'sp-grid';
+      clearGrid.style.marginTop = '8px';
+      clearGrid.appendChild(this.#createClearBtn());
+      this.#content.appendChild(clearGrid);
     }
+  }
+
+  #createClearBtn() {
+    const btn = document.createElement('button');
+    btn.className = 'sp-btn';
+    if (!this.#activeStitchId) btn.classList.add('sp-btn--active');
+    btn.title = 'Clear stitch (select mode)';
+    btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px;opacity:0.5;">block</span>';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.#activeStitchId) {
+        this.#onStitchClick(this.#activeStitchId); // toggle off
+      }
+    });
+    return btn;
   }
 
   #createBtn(stitch) {

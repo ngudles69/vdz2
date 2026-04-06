@@ -173,10 +173,10 @@ const textToolbar = new TextToolbar(bus, state, selectionManager, stitchStore, h
 // Track active tool in state for UI coordination
 bus.on('tool:changed', ({ id }) => state.set('activeTool', id));
 
-// Auto-switch between select and stamp based on picker state
+// When stitch is cleared, switch back to select mode
 bus.on('stitch:active-changed', ({ stitchId }) => {
-  if (toolManager.activeToolId === 'text') return; // don't override text tool
-  toolManager.setActive(stitchId ? 'stamp' : 'select');
+  if (toolManager.activeToolId === 'text') return;
+  if (!stitchId) toolManager.setActive('select');
 });
 
 // ============================================================
@@ -601,8 +601,69 @@ for (let i = 0; i <= 9; i++) {
   });
 }
 
-// --- Panels ---
-document.getElementById('btn-stitch-toggle').addEventListener('click', () => stitchPicker.toggle());
+// --- Tool buttons (stamp / select) ---
+const btnStampTool = document.getElementById('btn-stamp-tool');
+const btnSelectTool = document.getElementById('btn-select-tool');
+
+btnStampTool.addEventListener('click', () => {
+  if (toolManager.activeToolId === 'stamp') {
+    // Already in stamp mode — open stitch picker
+    stitchPicker.toggle();
+  } else if (!stitchPicker.getActiveStitchId()) {
+    // No stitch selected — open picker immediately and switch to stamp
+    stitchPicker.show();
+  } else {
+    // Stitch selected, not in stamp mode — activate stamp
+    toolManager.setActive('stamp');
+  }
+});
+
+btnSelectTool.addEventListener('click', () => {
+  toolManager.setActive('select');
+  stitchPicker.hide();
+});
+
+// Update tool button active states and stamp icon on tool/stitch changes
+function updateToolButtons() {
+  const isStamp = toolManager.activeToolId === 'stamp';
+  btnStampTool.classList.toggle('tool-active', isStamp);
+  btnSelectTool.classList.toggle('tool-active', !isStamp && toolManager.activeToolId === 'select');
+}
+
+function updateStampButtonIcon() {
+  const stitchId = stitchPicker.getActiveStitchId();
+  if (stitchId) {
+    const stitch = stitchLibrary.get(stitchId);
+    if (stitch && stitch.draw) {
+      // Draw stitch symbol onto a canvas inside the button
+      let canvas = btnStampTool.querySelector('canvas');
+      if (!canvas) {
+        btnStampTool.innerHTML = '';
+        canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        canvas.style.cssText = 'width:40px;height:40px;';
+        btnStampTool.appendChild(canvas);
+      }
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 64, 64);
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--vd-text').trim() || '#fff';
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.setLineDash([]);
+      stitch.draw(ctx, 32, 32, 48);
+    }
+  } else {
+    // No stitch — show default draw icon
+    btnStampTool.innerHTML = '<span class="material-symbols-rounded" style="font-size:40px;">draw</span>';
+  }
+}
+
+bus.on('tool:changed', () => updateToolButtons());
+bus.on('stitch:active-changed', () => updateStampButtonIcon());
+
 keyboard.register({ key: 'S', label: 'Toggle stitch picker', category: 'panels', action: () => stitchPicker.toggle() });
 keyboard.register({ key: 'C', label: 'Toggle clip builder', category: 'panels', action: () => clipBuilderPanel.toggle() });
 document.getElementById('btn-clip-builder').addEventListener('click', () => clipBuilderPanel.toggle());

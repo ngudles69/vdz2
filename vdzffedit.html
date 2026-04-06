@@ -143,6 +143,12 @@
       cursor: default;
     }
 
+    .icon-btn.tool-active {
+      color: var(--vd-accent);
+      background: var(--vd-surface-2);
+      border: 1px solid var(--vd-accent);
+    }
+
     /* --- Avatar button --- */
 
     .avatar-btn {
@@ -997,10 +1003,15 @@
       </div>
       <div id="box-select-rect"></div>
 
-      <!-- Stitch picker toggle (bottom-left, inside canvas) -->
-      <button id="btn-stitch-toggle" class="icon-btn" title="Stitch Picker (S)" style="position:absolute;bottom:16px;left:28px;z-index:100;width:48px;height:48px;">
-        <span class="material-symbols-rounded" style="font-size:40px;">draw</span>
-      </button>
+      <!-- Tool buttons (bottom-left, inside canvas) -->
+      <div id="tool-buttons" style="position:absolute;bottom:16px;left:28px;z-index:100;display:flex;gap:4px;">
+        <button id="btn-stamp-tool" class="icon-btn" title="Stamp Tool" style="width:48px;height:48px;">
+          <span class="material-symbols-rounded" style="font-size:40px;">draw</span>
+        </button>
+        <button id="btn-select-tool" class="icon-btn tool-active" title="Select Tool" style="width:48px;height:48px;">
+          <span class="material-symbols-rounded" style="font-size:40px;">arrow_selector_tool</span>
+        </button>
+      </div>
 
       <!-- Layer panel (inside canvas so it stays above video zone) -->
       <div id="layer-panel" class="layer-panel" style="display:none;">
