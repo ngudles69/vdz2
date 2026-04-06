@@ -173,10 +173,14 @@ const textToolbar = new TextToolbar(bus, state, selectionManager, stitchStore, h
 // Track active tool in state for UI coordination
 bus.on('tool:changed', ({ id }) => state.set('activeTool', id));
 
-// When stitch is cleared, switch back to select mode
+// Sync tool mode with stitch selection
 bus.on('stitch:active-changed', ({ stitchId }) => {
   if (toolManager.activeToolId === 'text') return;
-  if (!stitchId) toolManager.setActive('select');
+  if (stitchId) {
+    toolManager.setActive('stamp');
+  } else {
+    toolManager.setActive('select');
+  }
 });
 
 // ============================================================
@@ -610,7 +614,8 @@ btnStampTool.addEventListener('click', () => {
     // Already in stamp mode — open stitch picker
     stitchPicker.toggle();
   } else if (!stitchPicker.getActiveStitchId()) {
-    // No stitch selected — open picker immediately and switch to stamp
+    // No stitch selected — open picker immediately
+    toolManager.setActive('stamp');
     stitchPicker.show();
   } else {
     // Stitch selected, not in stamp mode — activate stamp
