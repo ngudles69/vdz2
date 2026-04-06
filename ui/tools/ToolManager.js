@@ -39,6 +39,18 @@ class ToolManager {
   /** @type {boolean} Whether the current interaction is touch */
   #isTouch = false;
 
+  /** @type {Map<number, {x:number, y:number}>} Current positions of active touch pointers */
+  #pointerPositions = new Map();
+
+  /** @type {number|null} Initial pinch distance when gesture started */
+  #pinchStartDist = null;
+
+  /** @type {number|null} Camera zoom when pinch gesture started */
+  #pinchStartZoom = null;
+
+  /** @type {{x:number, y:number}|null} Previous midpoint for pan tracking */
+  #prevMidpoint = null;
+
   // Shared references (available to tools via tool.manager.*)
   bus;
   state;
@@ -188,12 +200,15 @@ class ToolManager {
       // Track touch pointers
       if (isTouch) {
         this.#activePointers.add(e.pointerId);
+        this.#pointerPositions.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-        // Second finger down — switch to multi-touch, suppress tool
+        // Second finger down — switch to multi-touch, handle pinch/pan manually
         if (this.#activePointers.size > 1) {
           this.#multiTouch = true;
           this.#dragging = false;
           this.#pointerDownInfo = null;
+          // Initialize pinch/pan tracking
+          this.#initPinch();
           return;
         }
       }
@@ -202,7 +217,6 @@ class ToolManager {
       if (this.#spaceHeld) {
         this.#spacePanning = true;
         this.#canvas.style.cursor = 'grabbing';
-        // Don't intercept — let OrbitControls get the event
         return;
       }
 
@@ -213,9 +227,6 @@ class ToolManager {
         const consumed = this.#activeTool.onPointerDown(wp, e);
         if (consumed) {
           this.#dragging = true;
-          // Only disable OrbitControls for mouse — touch uses ONE:null
-          // so OrbitControls ignores single-finger anyway, and must stay
-          // enabled to detect the second finger for pinch/pan.
           if (!isTouch) {
             this.#controls.enabled = false;
           }
@@ -224,8 +235,17 @@ class ToolManager {
     });
 
     this.#canvas.addEventListener('pointermove', (e) => {
-      if (this.#multiTouch) return; // OrbitControls handles pinch/pan
-      if (this.#spacePanning) return; // OrbitControls handles it
+      // Manual pinch/pan for touch
+      if (e.pointerType === 'touch') {
+        this.#pointerPositions.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (this.#multiTouch && this.#activePointers.size >= 2) {
+          this.#updatePinch();
+          return;
+        }
+      }
+
+      if (this.#multiTouch) return;
+      if (this.#spacePanning) return;
       if (!this.#activeTool) return;
       const wp = this.#screenToWorld(e.clientX, e.clientY);
       this.#activeTool.onPointerMove(wp, e);
@@ -237,14 +257,16 @@ class ToolManager {
     this.#canvas.addEventListener('pointerup', (e) => {
       if (e.button !== 0) return;
 
-      // Track touch pointers
       if (e.pointerType === 'touch') {
         this.#activePointers.delete(e.pointerId);
+        this.#pointerPositions.delete(e.pointerId);
 
-        // If multi-touch gesture was in progress, suppress tool actions
         if (this.#multiTouch) {
           if (this.#activePointers.size === 0) {
             this.#multiTouch = false;
+            this.#pinchStartDist = null;
+            this.#pinchStartZoom = null;
+            this.#prevMidpoint = null;
           }
           return;
         }
@@ -272,15 +294,70 @@ class ToolManager {
       this.#pointerDownInfo = null;
     });
 
-    // Clean up pointers on cancel (e.g. finger leaves screen edge)
     this.#canvas.addEventListener('pointercancel', (e) => {
       if (e.pointerType === 'touch') {
         this.#activePointers.delete(e.pointerId);
+        this.#pointerPositions.delete(e.pointerId);
         if (this.#activePointers.size === 0) {
           this.#multiTouch = false;
+          this.#pinchStartDist = null;
+          this.#pinchStartZoom = null;
+          this.#prevMidpoint = null;
         }
       }
     });
+  }
+
+  // ---- Manual pinch-to-zoom / two-finger pan ----
+
+  #getTwoFingers() {
+    const ids = [...this.#activePointers];
+    const a = this.#pointerPositions.get(ids[0]);
+    const b = this.#pointerPositions.get(ids[1]);
+    if (!a || !b) return null;
+    return { a, b };
+  }
+
+  #initPinch() {
+    const f = this.#getTwoFingers();
+    if (!f) return;
+    const dx = f.b.x - f.a.x;
+    const dy = f.b.y - f.a.y;
+    this.#pinchStartDist = Math.sqrt(dx * dx + dy * dy);
+    this.#pinchStartZoom = this.viewport.camera.zoom;
+    this.#prevMidpoint = { x: (f.a.x + f.b.x) / 2, y: (f.a.y + f.b.y) / 2 };
+  }
+
+  #updatePinch() {
+    const f = this.#getTwoFingers();
+    if (!f || !this.#pinchStartDist) return;
+
+    const camera = this.viewport.camera;
+    const dx = f.b.x - f.a.x;
+    const dy = f.b.y - f.a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Zoom
+    const scale = dist / this.#pinchStartDist;
+    const newZoom = Math.max(0.1, Math.min(30, this.#pinchStartZoom * scale));
+    camera.zoom = newZoom;
+    camera.updateProjectionMatrix();
+
+    // Pan
+    const mid = { x: (f.a.x + f.b.x) / 2, y: (f.a.y + f.b.y) / 2 };
+    if (this.#prevMidpoint) {
+      const rect = this.#canvas.getBoundingClientRect();
+      const frustumSize = this.viewport.frustumSize;
+      const aspect = rect.width / rect.height;
+      // Convert pixel delta to world units
+      const worldPerPixelX = (frustumSize * aspect) / (rect.width * camera.zoom);
+      const worldPerPixelY = frustumSize / (rect.height * camera.zoom);
+      camera.position.x -= (mid.x - this.#prevMidpoint.x) * worldPerPixelX;
+      camera.position.y += (mid.y - this.#prevMidpoint.y) * worldPerPixelY;
+    }
+    this.#prevMidpoint = mid;
+
+    if (this.bus) this.bus.emit('camera:zoom-changed', { zoom: camera.zoom });
   }
 
   /**
