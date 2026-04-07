@@ -58,7 +58,40 @@ class ExportPanel {
 
   show() {
     this.#overlay.style.display = 'flex';
+    this.#populateResolutions();
     this.#resetUI();
+  }
+
+  /**
+   * Rebuild the resolution dropdown from the current document size.
+   * The 100% option exports at the document's native pixel dimensions;
+   * the other options downscale while preserving the document aspect ratio.
+   */
+  #populateResolutions() {
+    const select = this.#dialog.querySelector('#export-resolution');
+    const docW = this.#viewport.docWidth;
+    const docH = this.#viewport.docHeight;
+
+    // Round to even numbers — video encoders reject odd dimensions
+    const even = (n) => Math.max(2, Math.floor(n / 2) * 2);
+
+    const factors = [
+      { label: '100%', scale: 1.0 },
+      { label: '75%',  scale: 0.75 },
+      { label: '50%',  scale: 0.5 },
+      { label: '25%',  scale: 0.25 },
+    ];
+
+    select.innerHTML = '';
+    for (const { label, scale } of factors) {
+      const w = even(docW * scale);
+      const h = even(docH * scale);
+      const opt = document.createElement('option');
+      opt.value = `${w}x${h}`;
+      opt.textContent = `${w} × ${h} (${label})`;
+      if (scale === 1.0) opt.selected = true;
+      select.appendChild(opt);
+    }
   }
 
   hide() {
@@ -101,9 +134,7 @@ class ExportPanel {
       <div class="export-row">
         <label>Resolution</label>
         <select id="export-resolution">
-          <option value="1080x1920" selected>1080 × 1920 (vertical)</option>
-          <option value="1920x1080">1920 × 1080 (horizontal)</option>
-          <option value="720x1280">720 × 1280 (vertical, smaller)</option>
+          <!-- Populated in #populateResolutions() from the current document size -->
         </select>
       </div>
 
@@ -249,10 +280,15 @@ class ExportPanel {
 
     const sections = this.#videoZone.hasVideo ? this.#videoZone.sections : [];
 
-    // Set up renderer
+    // Set up renderer. Output resolution is w × h, but the camera is
+    // framed to the document size so the whole document is captured.
     const clipRenderer = new ClipRenderer();
-    clipRenderer.setup(this.#store, this.#atlas, this.#setManager, { width: w, height: h });
-    clipRenderer.matchCamera(this.#viewport.camera);
+    clipRenderer.setup(this.#store, this.#atlas, this.#setManager, {
+      width: w,
+      height: h,
+      docWidth: this.#viewport.docWidth,
+      docHeight: this.#viewport.docHeight,
+    });
 
     // Set up interpreter
     const interpreter = new RecipeInterpreter(this.#recipe, sections, fps);
@@ -311,47 +347,74 @@ class ExportPanel {
   }
 
   #showBlobDownload(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const link = this.#dialog.querySelector('#export-download');
-    link.href = url;
-    link.download = filename;
-    link.textContent = `Download ${filename} (${(blob.size / 1024 / 1024).toFixed(1)} MB)`;
-    this.#dialog.querySelector('#export-result').style.display = '';
-  }
-
-  #showPNGDownload(result) {
-    // For PNG sequence, offer individual frame downloads + meta.json
-    // In a full implementation, we'd zip these. For now, download meta + first/last frame as proof.
     const resultDiv = this.#dialog.querySelector('#export-result');
     resultDiv.innerHTML = '';
 
-    // Meta download
-    const metaUrl = URL.createObjectURL(result.metaBlob);
-    const metaLink = document.createElement('a');
-    metaLink.className = 'export-download-btn';
-    metaLink.href = metaUrl;
-    metaLink.download = 'meta.json';
-    metaLink.textContent = 'Download meta.json';
-    resultDiv.appendChild(metaLink);
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+    const ext = filename.split('.').pop() || '';
 
-    // Download all frames as individual files
-    const allBtn = document.createElement('button');
-    allBtn.className = 'export-download-btn';
-    allBtn.textContent = `Download ${result.blobs.length} PNG frames`;
-    allBtn.addEventListener('click', async () => {
-      for (let i = 0; i < result.blobs.length; i++) {
-        const url = URL.createObjectURL(result.blobs[i]);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${String(i + 1).padStart(4, '0')}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-        // Small delay to not overwhelm the browser
-        if (i % 20 === 0) await new Promise(r => setTimeout(r, 100));
+    const btn = document.createElement('button');
+    btn.className = 'export-download-btn';
+    btn.textContent = `Save As… (${sizeMB} MB)`;
+    btn.addEventListener('click', async () => {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: `${ext.toUpperCase()} file`,
+            accept: { [blob.type || 'application/octet-stream']: [`.${ext}`] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        btn.textContent = `Saved as ${handle.name}`;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Save failed:', err);
+          btn.textContent = `Save failed: ${err.message}`;
+        }
       }
     });
-    resultDiv.appendChild(allBtn);
+    resultDiv.appendChild(btn);
+    resultDiv.style.display = '';
+  }
 
+  #showPNGDownload(result) {
+    const resultDiv = this.#dialog.querySelector('#export-result');
+    resultDiv.innerHTML = '';
+
+    const btn = document.createElement('button');
+    btn.className = 'export-download-btn';
+    btn.textContent = `Save to folder… (${result.blobs.length + 1} files)`;
+    btn.addEventListener('click', async () => {
+      try {
+        const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+
+        // meta.json
+        const metaHandle = await dir.getFileHandle('meta.json', { create: true });
+        const metaWritable = await metaHandle.createWritable();
+        await metaWritable.write(result.metaBlob);
+        await metaWritable.close();
+
+        // frames
+        for (let i = 0; i < result.blobs.length; i++) {
+          const name = `${String(i + 1).padStart(4, '0')}.png`;
+          const fh = await dir.getFileHandle(name, { create: true });
+          const w = await fh.createWritable();
+          await w.write(result.blobs[i]);
+          await w.close();
+          btn.textContent = `Saving… ${i + 1} / ${result.blobs.length}`;
+        }
+        btn.textContent = `Saved ${result.blobs.length + 1} files to ${dir.name}`;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Save to folder failed:', err);
+          btn.textContent = `Save failed: ${err.message}`;
+        }
+      }
+    });
+    resultDiv.appendChild(btn);
     resultDiv.style.display = '';
   }
 

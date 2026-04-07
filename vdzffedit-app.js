@@ -751,6 +751,10 @@ document.getElementById('setting-grid-color').addEventListener('input', (e) => {
 document.getElementById('setting-ruler').addEventListener('change', (e) => { viewport.setRulerVisible(e.target.checked); saveSettings(); });
 document.getElementById('setting-ruler-opacity').addEventListener('change', (e) => { viewport.setRulerOpacity(parseInt(e.target.value) / 100); saveSettings(); });
 document.getElementById('setting-stitch-scale').addEventListener('change', (e) => { state.set('stitchScale', parseFloat(e.target.value)); saveSettings(); });
+document.getElementById('setting-stitch-thickness').addEventListener('change', (e) => {
+  stitchAtlas.setLineWidth(parseInt(e.target.value));
+  saveSettings();
+});
 document.getElementById('setting-sel-color').addEventListener('input', (e) => {
   state.set('selectionColor', e.target.value);
   stitchRenderer.setSelectionColor(e.target.value);
@@ -795,6 +799,7 @@ function saveSettings() {
     borderColor: viewport.borderColor,
     borderOpacity: viewport.borderOpacity,
     stitchScale: state.get('stitchScale') || 1,
+    stitchThickness: stitchAtlas.lineWidth,
     groups: setBarEl.style.display !== 'none',
     background: viewport.backgroundType,
     docSize: `${viewport.docWidth}x${viewport.docHeight}`,
@@ -855,6 +860,10 @@ function loadSettings() {
     if (s.stitchScale) {
       state.set('stitchScale', s.stitchScale);
       document.getElementById('setting-stitch-scale').value = s.stitchScale;
+    }
+    if (s.stitchThickness) {
+      stitchAtlas.setLineWidth(s.stitchThickness);
+      document.getElementById('setting-stitch-thickness').value = s.stitchThickness;
     }
     if (s.docSize) {
       const [w, h] = s.docSize.split('x').map(Number);

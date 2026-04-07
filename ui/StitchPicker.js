@@ -111,20 +111,28 @@ class StitchPicker {
         pointer-events: auto;
         display: none;
         flex-direction: column;
-        max-height: calc(100vh - 80px);
+        width: 250px;
+        height: 560px;
         min-width: 230px;
-        max-width: 260px;
+        min-height: 280px;
+        max-width: calc(100vw - 56px);
+        max-height: calc(100vh - 80px);
+        /* Allow the user to drag-resize from the bottom-right corner.
+           overflow:hidden is required for CSS resize to work, and the
+           inner .sp-content has its own scroll so this is safe. */
+        resize: both;
+        overflow: hidden;
         font-family: 'Jost', sans-serif;
       }
       .stitch-picker.open { display: flex; }
 
-      /* Header */
+      /* Header (rendered at the bottom of the picker) */
       .sp-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 8px 10px 6px;
-        border-bottom: 1px solid var(--vd-border);
+        padding: 6px 10px 8px;
+        border-top: 1px solid var(--vd-border);
         flex-shrink: 0;
       }
       .sp-title {
@@ -304,6 +312,32 @@ class StitchPicker {
     this.#el = document.createElement('div');
     this.#el.className = 'stitch-picker';
 
+    // Restore previously-saved size (user drag-resize persists across reloads)
+    try {
+      const saved = JSON.parse(localStorage.getItem('vdz-stitch-picker-size') || 'null');
+      if (saved && saved.w && saved.h) {
+        this.#el.style.width  = `${saved.w}px`;
+        this.#el.style.height = `${saved.h}px`;
+      }
+    } catch {}
+
+    // Save size when the user stops dragging the resize handle
+    if (typeof ResizeObserver === 'function') {
+      let saveTimer = null;
+      const ro = new ResizeObserver(() => {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          try {
+            localStorage.setItem('vdz-stitch-picker-size', JSON.stringify({
+              w: this.#el.offsetWidth,
+              h: this.#el.offsetHeight,
+            }));
+          } catch {}
+        }, 200);
+      });
+      ro.observe(this.#el);
+    }
+
     // Header
     const header = document.createElement('div');
     header.className = 'sp-header';
@@ -464,9 +498,12 @@ class StitchPicker {
     this.#content = document.createElement('div');
     this.#content.className = 'sp-content';
 
-    this.#el.appendChild(header);
+    // Order: preview (with controls) → content (scrolling stitch grid) → header.
+    // Header sits at the bottom so it stays reachable on short screens where
+    // the scrolling stitch grid would otherwise push it off-screen.
     this.#el.appendChild(preview);
     this.#el.appendChild(this.#content);
+    this.#el.appendChild(header);
     container.appendChild(this.#el);
 
     this.#renderContent();

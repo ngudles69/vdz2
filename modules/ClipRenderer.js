@@ -45,6 +45,12 @@ class ClipRenderer {
   /** @type {number} */
   #height = 1920;
 
+  /** @type {number} World-space document width (camera frustum width) */
+  #docWidth = 1080;
+
+  /** @type {number} World-space document height (camera frustum height) */
+  #docHeight = 1920;
+
   // Instanced attributes
   #uvAttr;
   #tintAttr;
@@ -100,6 +106,11 @@ class ClipRenderer {
     this.#setManager = setManager;
     this.#width = resolution.width;
     this.#height = resolution.height;
+    // Document dimensions in world units. The camera frames exactly this
+    // rectangle so the exported frame always shows the whole document,
+    // regardless of how the user has panned/zoomed the main viewport.
+    this.#docWidth = resolution.docWidth ?? resolution.width;
+    this.#docHeight = resolution.docHeight ?? resolution.height;
 
     // Create off-screen renderer with alpha
     this.#renderer = new THREE.WebGLRenderer({
@@ -116,14 +127,13 @@ class ClipRenderer {
     // Scene
     this.#scene = new THREE.Scene();
 
-    // Camera — orthographic, framed to match the viewport's coordinate system
-    // Use a frustum that covers the same world space as the main viewport
-    const aspect = this.#width / this.#height;
-    const frustumSize = 400; // same as main viewport default
+    // Camera — orthographic, framed exactly to the document rectangle.
+    // Output pixel dimensions may be a scaled-down version of the document,
+    // but the world-space frustum always equals the document size.
+    const hw = this.#docWidth / 2;
+    const hh = this.#docHeight / 2;
     this.#camera = new THREE.OrthographicCamera(
-      -frustumSize * aspect / 2, frustumSize * aspect / 2,
-      frustumSize / 2, -frustumSize / 2,
-      0.1, 1000
+      -hw, hw, hh, -hh, 0.1, 1000
     );
     this.#camera.position.set(0, 0, 100);
     this.#camera.lookAt(0, 0, 0);
@@ -137,23 +147,11 @@ class ClipRenderer {
   }
 
   /**
-   * Set the camera to match the main viewport's camera position/zoom.
-   * Call this before rendering to ensure the off-screen render matches
-   * what the user sees.
-   * @param {THREE.OrthographicCamera} mainCamera
+   * No-op kept for API compatibility. The export camera is framed to the
+   * document, not the user's panned viewport, so there's nothing to sync.
    */
-  matchCamera(mainCamera) {
-    this.#camera.position.copy(mainCamera.position);
-    this.#camera.zoom = mainCamera.zoom;
-
-    // Recompute frustum for our resolution's aspect ratio
-    const aspect = this.#width / this.#height;
-    const frustumSize = 400;
-    this.#camera.left = -frustumSize * aspect / 2;
-    this.#camera.right = frustumSize * aspect / 2;
-    this.#camera.top = frustumSize / 2;
-    this.#camera.bottom = -frustumSize / 2;
-    this.#camera.updateProjectionMatrix();
+  matchCamera(_mainCamera) {
+    // intentionally empty
   }
 
   /**

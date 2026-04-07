@@ -45,6 +45,9 @@ class StitchAtlas {
   /** @type {HTMLCanvasElement|null} */
   #canvas = null;
 
+  /** @type {number} Line width used when drawing symbols into the atlas */
+  #lineWidth = 3;
+
   /**
    * @param {import('./StitchLibrary.js').StitchLibrary} library - StitchLibrary instance
    * @param {{ debug?: boolean }} [options={}] - Options
@@ -67,7 +70,9 @@ class StitchAtlas {
    * @returns {THREE.CanvasTexture} The generated atlas texture
    */
   generate() {
-    const canvas = document.createElement('canvas');
+    // Reuse existing canvas on regeneration so the THREE.CanvasTexture
+    // keeps pointing at the same GPU resource — we just mark it dirty.
+    const canvas = this.#canvas || document.createElement('canvas');
     canvas.width = ATLAS_WIDTH;
     canvas.height = ATLAS_HEIGHT;
 
@@ -76,10 +81,10 @@ class StitchAtlas {
     // Clear to transparent
     ctx.clearRect(0, 0, ATLAS_WIDTH, ATLAS_HEIGHT);
 
-    // Global drawing style for symbols — thick strokes for visibility at low zoom
+    // Global drawing style for symbols — stroke width is user-configurable
     ctx.strokeStyle = '#ffffff';
     ctx.fillStyle = '#ffffff';
-    ctx.lineWidth = 6;
+    ctx.lineWidth = this.#lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -96,7 +101,7 @@ class StitchAtlas {
         // Reset styles before each draw (draw functions may modify state)
         ctx.strokeStyle = '#ffffff';
         ctx.fillStyle = '#ffffff';
-        ctx.lineWidth = 6;
+        ctx.lineWidth = this.#lineWidth;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.setLineDash([]);
@@ -139,18 +144,37 @@ class StitchAtlas {
       ctx.restore();
     }
 
-    // Create Three.js texture
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.flipY = false; // CRITICAL: Canvas Y is top-down, UVs computed manually
+    // Create Three.js texture on first call; on regenerate, just flag the
+    // existing texture dirty so the GPU re-uploads the same canvas.
+    if (this.#texture) {
+      this.#texture.needsUpdate = true;
+    } else {
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.flipY = false; // CRITICAL: Canvas Y is top-down, UVs computed manually
+      this.#texture = texture;
+    }
 
-    this.#texture = texture;
     this.#canvas = canvas;
-
-    return texture;
+    return this.#texture;
   }
+
+  /**
+   * Set the symbol stroke width (1–16) and rebuild the atlas texture.
+   * Existing renderers keep using the same texture object.
+   * @param {number} w
+   */
+  setLineWidth(w) {
+    const next = Math.max(1, Math.min(16, Number(w) || 3));
+    if (next === this.#lineWidth) return;
+    this.#lineWidth = next;
+    if (this.#canvas) this.generate();
+  }
+
+  /** @returns {number} Current symbol stroke width */
+  get lineWidth() { return this.#lineWidth; }
 
   /**
    * Get UV coordinates for a stitch in the atlas.
