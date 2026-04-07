@@ -448,10 +448,10 @@ function loadProject() {
         // Restore grid
         if (project.grid) {
           viewport.setGridVisible(project.grid.visible ?? false);
-          viewport.setGridSize(project.grid.spacing ?? 20);
+          viewport.setGridSize(project.grid.spacing ?? 50);
           viewport.setGridOpacity(project.grid.opacity ?? 0.15);
           document.getElementById('setting-grid').checked = project.grid.visible ?? false;
-          document.getElementById('setting-grid-size').value = project.grid.spacing ?? 20;
+          document.getElementById('setting-grid-size').value = project.grid.spacing ?? 50;
           document.getElementById('setting-grid-opacity').value = Math.round((project.grid.opacity ?? 0.15) * 100);
         }
 
@@ -757,6 +757,14 @@ document.getElementById('setting-sel-color').addEventListener('input', (e) => {
   transformControls.setSelectionColor(e.target.value);
   saveSettings();
 });
+document.getElementById('setting-border-color').addEventListener('input', (e) => {
+  viewport.setBorderColor(e.target.value);
+  saveSettings();
+});
+document.getElementById('setting-border-opacity').addEventListener('change', (e) => {
+  viewport.setBorderOpacity(parseInt(e.target.value) / 100);
+  saveSettings();
+});
 
 // ============================================================
 // Layers panel toggle
@@ -784,6 +792,8 @@ function saveSettings() {
     snap: !!state.get('gridSnap'),
     link: !!state.get('gridLink'),
     selectionColor: state.get('selectionColor') || '#ff69b4',
+    borderColor: viewport.borderColor,
+    borderOpacity: viewport.borderOpacity,
     stitchScale: state.get('stitchScale') || 1,
     groups: setBarEl.style.display !== 'none',
     background: viewport.backgroundType,
@@ -833,6 +843,14 @@ function loadSettings() {
       stitchRenderer.setSelectionColor(s.selectionColor);
       transformControls.setSelectionColor(s.selectionColor);
       document.getElementById('setting-sel-color').value = s.selectionColor;
+    }
+    if (s.borderColor) {
+      viewport.setBorderColor(s.borderColor);
+      document.getElementById('setting-border-color').value = s.borderColor;
+    }
+    if (s.borderOpacity !== undefined) {
+      viewport.setBorderOpacity(s.borderOpacity);
+      document.getElementById('setting-border-opacity').value = Math.round(s.borderOpacity * 100);
     }
     if (s.stitchScale) {
       state.set('stitchScale', s.stitchScale);

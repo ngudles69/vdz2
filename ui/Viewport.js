@@ -53,11 +53,13 @@ class Viewport {
   #bgMesh = null;       // document area background
   #overflowMesh = null;  // overflow area (dark)
   #borderLine = null;    // document border
+  #borderColor = '#ffffff';
+  #borderOpacity = 0.8;
   #bgType = 'minimal';
 
   // --- Line grid ---
   #gridGroup = null;
-  #gridSpacing = 20;
+  #gridSpacing = 50;
   #gridOpacity = 0.15;
   #gridColor = '#777777';
 
@@ -461,11 +463,27 @@ class Viewport {
       new THREE.Vector3(-hw, -hh, 0),
     ];
     const geom = new THREE.BufferGeometry().setFromPoints(pts);
-    const mat = new THREE.LineBasicMaterial({ color: 0x444455, depthTest: false, transparent: true, opacity: 0.6 });
+    const mat = new THREE.LineBasicMaterial({
+      color: new THREE.Color(this.#borderColor),
+      depthTest: false,
+      transparent: true,
+      opacity: this.#borderOpacity,
+    });
     this.#borderLine = new THREE.Line(geom, mat);
     this.#borderLine.renderOrder = 2;
     bgGroup.add(this.#borderLine);
   }
+
+  setBorderColor(c) {
+    this.#borderColor = c;
+    if (this.#borderLine) this.#borderLine.material.color.set(c);
+  }
+  setBorderOpacity(o) {
+    this.#borderOpacity = Math.max(0, Math.min(1, o));
+    if (this.#borderLine) this.#borderLine.material.opacity = this.#borderOpacity;
+  }
+  get borderColor()   { return this.#borderColor; }
+  get borderOpacity() { return this.#borderOpacity; }
 
   // ==== Background presets ====
 

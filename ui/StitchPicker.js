@@ -442,7 +442,7 @@ class StitchPicker {
 
     this.#sizeCtrl = createNumberInput({
       label: 'Size%',
-      value: 100,
+      value: 400,
       min: 10,
       max: 1000,
       step: 10,
