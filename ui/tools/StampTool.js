@@ -157,6 +157,7 @@ class StampTool extends Tool {
       stitchType: stitchId,
       position: snapped,
       rotation: -(picker.getRotation() || 0) * Math.PI / 180,
+      scale: picker.getStampScale(),
       colorOverride: picker.getStampColor(),
       opacity: picker.getStampOpacity(),
       gridSnapped: this.grid.visible,

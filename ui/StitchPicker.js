@@ -47,6 +47,7 @@ class StitchPicker {
   #rotationCtrl;
   #colorCtrl;
   #opacityCtrl;
+  #sizeCtrl;
   #dialCtrl;
 
   // Selection editing
@@ -84,6 +85,7 @@ class StitchPicker {
   getRotation()       { return this.#rotationCtrl.getValue(); }
   getStampColor()     { return this.#colorCtrl.getValue(); }
   getStampOpacity()   { return this.#opacityCtrl.getNormalized(); }
+  getStampScale()     { return (this.#sizeCtrl.getValue() || 100) / 100; }
   get isOpen()        { return this.#visible; }
 
   show()   { this.#visible = true;  this.#el.classList.add('open'); }
@@ -110,8 +112,8 @@ class StitchPicker {
         display: none;
         flex-direction: column;
         max-height: calc(100vh - 80px);
-        min-width: 190px;
-        max-width: 250px;
+        min-width: 230px;
+        max-width: 260px;
         font-family: 'Jost', sans-serif;
       }
       .stitch-picker.open { display: flex; }
@@ -220,7 +222,8 @@ class StitchPicker {
       /* Controls row */
       .sp-controls {
         display: flex;
-        gap: 6px;
+        flex-wrap: wrap;
+        gap: 6px 6px;
         align-items: flex-start;
         justify-content: center;
         width: 100%;
@@ -437,6 +440,24 @@ class StitchPicker {
     });
     controls.appendChild(this.#opacityCtrl.el);
 
+    this.#sizeCtrl = createNumberInput({
+      label: 'Size%',
+      value: 100,
+      min: 10,
+      max: 1000,
+      step: 10,
+      decimals: 0,
+      onChange: (v) => {
+        const sc = v / 100;
+        this.#state.set('stampScale', sc);
+        if (this.#editingSelection) {
+          this.#applyToSelection({ scale: sc });
+        }
+        this.#drawPreview();
+      },
+    });
+    controls.appendChild(this.#sizeCtrl.el);
+
     preview.appendChild(controls);
 
     // Content (stitch grid)
@@ -467,11 +488,15 @@ class StitchPicker {
     const rotation = this.#rotationCtrl.getValue();
     const color = this.#colorCtrl.getValue();
     const opacity = this.#opacityCtrl.getNormalized();
+    const scale = (this.#sizeCtrl?.getValue() || 100) / 100;
+    // Clamp preview scale so it doesn't visibly overflow the circle
+    const previewScale = Math.min(scale, 1.4);
 
     ctx.save();
     ctx.globalAlpha = opacity;
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(rotation * Math.PI / 180);
+    ctx.scale(previewScale, previewScale);
 
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
@@ -640,6 +665,15 @@ class StitchPicker {
       this.#opacityCtrl.setValue(opacities[0]);
     } else {
       this.#opacityCtrl.setMixed();
+    }
+
+    // Size: show value if all same, "--" if mixed
+    const scales = stamps.map(s => Math.round((s.scale ?? 1) * 100));
+    const allSameScale = scales.every(sc => sc === scales[0]);
+    if (allSameScale) {
+      this.#sizeCtrl.setValue(scales[0]);
+    } else {
+      this.#sizeCtrl.setMixed();
     }
 
     this.#drawPreview();
